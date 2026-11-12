@@ -1,0 +1,14 @@
+# Dependencies and build output
+node_modules
+dist
+*.tsbuildinfo
+
+# Secrets and local settings
+.env
+.claude/
+
+# Private data: names of owners and property disputes. Share these files directly with whoever needs them, never through git.
+*.xlsx
+~$*
+*.pdf
+deploy/*.sql

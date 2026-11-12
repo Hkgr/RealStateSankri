@@ -1,0 +1,13 @@
+{
+  "name": "realestate",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "start": "npm --prefix server start",
+    "dev": "npm --prefix server run dev",
+    "db:import": "npm --prefix server run db:import",
+    "db:import:dry": "npm --prefix server run db:import:dry",
+    "test": "npm --prefix server test",
+    "build": "npm --prefix frontend run build"
+  }
+}

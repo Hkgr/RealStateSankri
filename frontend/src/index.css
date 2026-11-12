@@ -1,0 +1,152 @@
+@import "@fontsource-variable/cairo/wght.css";
+@import "tailwindcss";
+
+/*
+ * Warm paper background, deep teal brand and a muted gold accent. The categorical chart colours
+ * live in lib/labels.ts so a category has the same colour in every chart.
+ */
+@theme {
+  --font-sans: "Cairo Variable", "Cairo", system-ui, sans-serif;
+
+  --color-paper: #f7f5f0;
+  --color-paper-deep: #efece4;
+  --color-surface: #ffffff;
+  --color-line: #e6e1d6;
+  --color-line-strong: #d3ccbd;
+
+  --color-ink: #1b2327;
+  --color-ink-soft: #435056;
+  --color-ink-muted: #5f6b70;
+
+  --color-brand: #0f5f5c;
+  --color-brand-bright: #14827d;
+  --color-brand-ink: #0b4a47;
+  --color-brand-soft: #e1f0ee;
+  --color-brand-wash: #f1f8f7;
+  --color-gold: #b8892b;
+  --color-gold-soft: #f6edd6;
+
+  --color-danger: #b42318;
+  --color-danger-soft: #fdecea;
+
+  --shadow-card: 0 1px 2px rgb(27 35 39 / 0.04), 0 6px 20px -10px rgb(27 35 39 / 0.12);
+  --shadow-lift: 0 2px 4px rgb(27 35 39 / 0.05), 0 14px 32px -14px rgb(27 35 39 / 0.22);
+
+  --animate-enter: enter 0.42s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-shimmer: shimmer 1.4s linear infinite;
+
+  @keyframes enter {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    color: var(--color-ink);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    background: var(--color-paper);
+  }
+
+  /* Latin digits stay aligned and keep their order inside Arabic text. */
+  .num {
+    font-variant-numeric: tabular-nums lining-nums;
+    direction: ltr;
+    unicode-bidi: isolate;
+    display: inline-block;
+  }
+
+  /* A table cell must stay a table cell, or its column drifts away from the header; numbers align to the RTL start edge. */
+  td.num,
+  th.num {
+    display: table-cell;
+    text-align: right;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-brand-bright);
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+
+  ::selection {
+    background: var(--color-brand);
+    color: #fff;
+  }
+}
+
+@layer components {
+  .skeleton {
+    background: linear-gradient(90deg, #ece8de 25%, #f5f2ea 37%, #ece8de 63%);
+    background-size: 400% 100%;
+    animation: var(--animate-shimmer);
+    border-radius: 12px;
+  }
+
+  .intro {
+    animation: var(--animate-enter);
+  }
+
+  .brand-rule {
+    height: 3px;
+    background: linear-gradient(90deg, var(--color-brand) 0%, var(--color-brand-bright) 60%, var(--color-gold) 100%);
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+  body {
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .avoid-break {
+    break-inside: avoid;
+  }
+}

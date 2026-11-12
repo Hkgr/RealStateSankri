@@ -1,0 +1,100 @@
+// Rebuilds the database from the Excel sheet:  npm run db:import  (add -- --dry-run to only parse)
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import path from 'node:path'
+import mysql from 'mysql2/promise'
+import XLSX from 'xlsx'
+import { dbConfig } from '../db.js'
+import { buildModel, sheetTotals } from './build.js'
+
+const dryRun = process.argv.includes('--dry-run')
+const here = path.dirname(fileURLToPath(import.meta.url))
+const source = path.resolve(here, '../..', process.env.SOURCE_XLSX ?? '../تجميع اراضي.xlsx')
+
+const workbook = XLSX.readFile(source)
+const sheetRows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: null })
+const { parcels, excluded, warnings } = buildModel(sheetRows)
+const totals = sheetTotals(sheetRows)
+
+const count = (pick) => parcels.reduce((total, parcel) => total + pick(parcel).length, 0)
+console.log(`الملف: ${source}`)
+console.log(`عقارات: ${parcels.length} · إشارات: ${count((p) => p.annotations)} · عقود شراء: ${count((p) => p.purchases)} · مالكون مسجلون: ${count((p) => p.owners)}`)
+for (const warning of warnings) console.warn(`تحذير: ${warning}`)
+if (dryRun) process.exit(0)
+
+const { database, ...server } = dbConfig
+const connection = await mysql.createConnection({ ...server, charset: 'utf8mb4', multipleStatements: true, decimalNumbers: true })
+try {
+  await connection.query(`CREATE DATABASE IF NOT EXISTS \`${database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`)
+  await connection.query(`USE \`${database}\``)
+  await connection.query(readFileSync(path.join(here, '../../sql/schema.sql'), 'utf8'))
+
+  await connection.beginTransaction()
+  const regionIds = new Map()
+  for (const name of [...new Set(parcels.map((p) => p.regionName))].sort((a, b) => a.localeCompare(b, 'ar'))) {
+    const [result] = await connection.execute('INSERT INTO regions (name_ar) VALUES (?)', [name])
+    regionIds.set(name, result.insertId)
+  }
+
+  for (const p of parcels) {
+    const [result] = await connection.execute(
+      `INSERT INTO parcels (region_id, minute_no, minute_base, property_type, is_damaged, ownership_group, kashf16_ref, land_status,
+         registry_status, asali_registered_on, asali_registered_raw, first_purchase_date, acquisition_method,
+         transfer_date, judgment_date, transfer_raw, minute_area, total_area, total_shares, sankari_shares,
+         asali_shares, k16_area, k16_value_syp, k16_value_usd, sankari_value_usd, asali_value_usd, notes,
+         source_row_start, source_row_end, merged_source_rows)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [regionIds.get(p.regionName), p.minuteNo, p.minuteBase, p.propertyType, p.isDamaged ? 1 : 0, p.ownershipGroup, p.kashf16Ref,
+        p.landStatus, p.registryStatus, p.asaliRegisteredOn, p.asaliRegisteredRaw, p.firstPurchaseDate,
+        p.acquisitionMethod, p.transferDate, p.judgmentDate, p.transferRaw, p.minuteArea, p.totalArea, p.totalShares,
+        p.sankariShares, p.asaliShares, p.k16Area, p.k16ValueSyp, p.k16ValueUsd, p.sankariValueUsd, p.asaliValueUsd,
+        p.notes, p.sourceRowStart, p.sourceRowEnd, p.mergedSourceRows],
+    )
+    const parcelId = result.insertId
+    for (const o of p.owners) {
+      await connection.execute(
+        'INSERT INTO parcel_owners (parcel_id, seq, owner_name, shares, area, source_row) VALUES (?,?,?,?,?,?)',
+        [parcelId, o.seq, o.name, o.shares, o.area, o.sourceRow],
+      )
+    }
+    for (const u of p.purchases) {
+      await connection.execute(
+        'INSERT INTO purchases (parcel_id, seq, purchase_date, date_raw, purchased_by, channel, source_row) VALUES (?,?,?,?,?,?,?)',
+        [parcelId, u.seq, u.date, u.dateRaw, u.purchasedBy, u.channel, u.sourceRow],
+      )
+    }
+    for (const a of p.annotations) {
+      await connection.execute(
+        `INSERT INTO annotations (parcel_id, seq, ref_no, ref_date, ref_year, ref_date_raw, placed_by, category,
+           category_source, placed_on, target_party, target_shares, timing, row_sankari_shares, row_asali_shares, source_row)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        [parcelId, a.seq, a.refNo, a.refDate, a.refYear, a.refDateRaw, a.placedBy, a.category, a.categorySource,
+          a.placedOn, a.targetParty, a.targetShares, a.timing, a.rowSankariShares, a.rowAsaliShares, a.sourceRow],
+      )
+    }
+  }
+  await connection.commit()
+
+  // Prove the database holds exactly what the sheet holds.
+  const [[db]] = await connection.query(`
+    SELECT SUM(k16_value_usd) k16ValueUsd, SUM(sankari_value_usd) sankariValueUsd, SUM(asali_value_usd) asaliValueUsd,
+           SUM(k16_value_syp) k16ValueSyp, SUM(k16_area) k16Area, SUM(minute_area) minuteArea,
+           (SELECT COUNT(*) FROM annotations) annotationRows, (SELECT COUNT(*) FROM purchases) purchaseRows
+    FROM parcels`)
+  let ok = true
+  // Figures on a minute's later rows are not counted (the first row holds the data), so they are taken off the sheet totals.
+  const left = (key) => excluded[key] ?? 0
+  for (const key of Object.keys(totals)) {
+    const expected = totals[key] - left(key)
+    const same = Math.abs(Number(db[key]) - expected) < 0.01
+    ok &&= same
+    console.log(`${same ? '✓' : '✗'} ${key}: الملف ${totals[key]}${left(key) ? ` − مستبعد ${left(key)}` : ''} · القاعدة ${Number(db[key])}`)
+  }
+  if (!ok) throw new Error('إجماليات القاعدة لا تطابق الملف')
+  console.log(`تم الاستيراد إلى ${database}`)
+} catch (error) {
+  await connection.rollback().catch(() => {})
+  throw error
+} finally {
+  await connection.end()
+}

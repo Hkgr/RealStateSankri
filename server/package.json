@@ -1,0 +1,21 @@
+{
+  "name": "realestate-server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "db:import": "node --env-file=.env src/import/run.js",
+    "db:import:dry": "node --env-file=.env src/import/run.js --dry-run",
+    "start": "node --env-file=.env src/server.js",
+    "dev": "node --env-file=.env --watch src/server.js",
+    "test": "node --test \"test/*.test.js\""
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^5.3.0",
+    "mysql2": "^3.24.6",
+    "xlsx": "^0.18.5"
+  }
+}
