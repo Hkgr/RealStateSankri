@@ -30,7 +30,7 @@ export async function buildAnalytics(rows, filters) {
   const categories = await rows('SELECT code, name_ar AS name FROM annotation_categories ORDER BY sort_order')
   const categoryName = new Map(categories.map((c) => [c.code, c.name]))
 
-  const [caseRows, nullRef, parcelExposure, priced, operationValues, operationList, purchaseLags, annotationLags] = await Promise.all([
+  const [caseRows, nullRef, parcelExposure, priced, operationValues, lineValues, operationList, purchaseLags, annotationLags] = await Promise.all([
     // One row per (case, parcel): a case is the same annotation number, in the same region, from the same placer.
     rows(
       `SELECT p.id parcel_id, p.region_id, r.name_ar region, a.ref_no, a.placed_by, MIN(a.category) category, MIN(a.ref_year) ref_year,
@@ -63,6 +63,7 @@ export async function buildAnalytics(rows, filters) {
     ),
     // Each operation's value sits on its first minute, so values are totalled per operation, never per minute.
     rows('SELECT kashf16_ref ref, SUM(k16_value_usd) value_usd FROM parcels WHERE kashf16_ref IS NOT NULL GROUP BY kashf16_ref'),
+    rows('SELECT parcel_id, SUM(k16_value_usd) value_usd FROM operation_lines GROUP BY parcel_id'),
     loadOperations(rows, filters),
     rows(
       `SELECT p.region_id, DATEDIFF(p.transfer_date, p.first_purchase_date) days FROM parcels p
@@ -80,11 +81,19 @@ export async function buildAnalytics(rows, filters) {
   // Value of a set of minutes: each purchase operation counts once with its whole value; a minute with no
   // operation counts with its own value.
   const operationValue = new Map(operationValues.map((o) => [o.ref, o.value_usd]))
+  // Kashf 16 lines written under a minute count with that minute.
+  const lineValue = new Map(lineValues.map((l) => [l.parcel_id, l.value_usd]))
   const valueOf = (list) => {
     const refs = new Set()
+    const ids = new Set()
     let loose = 0
     let known = false
     for (const item of list) {
+      if (item.id != null && !ids.has(item.id) && lineValue.has(item.id)) {
+        ids.add(item.id)
+        loose += lineValue.get(item.id)
+        known = true
+      }
       if (item.ref16) refs.add(item.ref16)
       else if (item.own_value != null) {
         loose += item.own_value
@@ -115,7 +124,7 @@ export async function buildAnalytics(rows, filters) {
     category_name: categoryName.get(c.category) ?? c.category,
     parcels: c.items.length,
     total_area: c.items.reduce((s, i) => s + (i.total_area ?? 0), 0),
-    value_usd: valueOf(c.items.map((i) => ({ ref16: i.ref16, own_value: i.own_value }))),
+    value_usd: valueOf(c.items.map((i) => ({ id: i.parcel_id, ref16: i.ref16, own_value: i.own_value }))),
   }))
   const nullRefRows = nullRef.reduce((sum, r) => sum + r.n, 0)
   const totalRows = cases.reduce((sum, c) => sum + c.annotation_rows, 0) + nullRefRows
@@ -152,7 +161,7 @@ export async function buildAnalytics(rows, filters) {
     parcels: list.length,
     total_area: total(list, (p) => p.total_area),
     owned_area: total(list, (p) => p.minute_area),
-    value_usd: valueOf(list.map((p) => ({ ref16: p.ref16, own_value: p.k16_value_usd }))),
+    value_usd: valueOf(list.map((p) => ({ id: p.id, ref16: p.ref16, own_value: p.k16_value_usd }))),
   })
   const isCritical = (p) => CRITICAL.some((code) => p[code] > 0)
   const exposureByCategory = categories.map((c) => ({ code: c.code, name: c.name, ...sums(parcelExposure.filter((p) => p[c.code] > 0)) }))

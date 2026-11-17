@@ -207,6 +207,8 @@ export interface ParcelDetail {
     price: number | null
     minutes_list: { id: number; region: string; minute_no: string; source_row: number; carries_value: number }[]
   } | null
+  /** Kashf 16 lines written under this minute that are purchase operations of their own. */
+  extra_operations: { ref: string; owners: string; total_area: number | null; k16_area: number | null; value_usd: number | null; value_syp: number | null; source_row: number; source_row_end: number }[]
 }
 
 export interface ExposureTotals {
@@ -338,6 +340,8 @@ export interface OperationRow {
   price: number | null
   regions: string
   owners: string
+  /** Set when the operation is a Kashf 16 line written under a minute listed twice: that minute's number. */
+  listed_under: string | null
 }
 
 export interface OperationsReport {

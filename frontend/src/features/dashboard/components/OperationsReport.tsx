@@ -60,7 +60,7 @@ export function OperationsReport({ report, charts = true }: { report: Report; ch
       (item) =>
         matchesSearch(`${item.ref} ${item.regions} ${item.owners}`, search) &&
         (year === '' || (year === 'none' ? item.purchase_year == null : String(item.purchase_year) === year)) &&
-        (size === '' || (size === 'single' ? item.minutes === 1 : item.minutes > 1)),
+        (size === '' || (size === 'single' ? item.minutes <= 1 : item.minutes > 1)),
     )
     const sorted = [...matching].sort((a, b) => compare(a, b, sort.key))
     return sort.dir === 'desc' ? sorted.reverse() : sorted
@@ -155,7 +155,15 @@ export function OperationsReport({ report, charts = true }: { report: Report; ch
                 <tr key={item.ref} className="border-t border-line transition-colors hover:bg-brand-wash">
                   <td className="num px-3 py-2 font-bold text-ink">{item.ref}</td>
                   <td className="px-3 py-2 text-ink-soft">{item.regions}</td>
-                  <td className="num px-3 py-2 font-bold">{formatNumber(item.minutes)}</td>
+                  <td className="num px-3 py-2 font-bold">
+                    {item.listed_under ? (
+                      <span className="text-xs font-semibold text-ink-muted">
+                        تحت محضر <span className="num">{item.listed_under}</span>
+                      </span>
+                    ) : (
+                      formatNumber(item.minutes)
+                    )}
+                  </td>
                   <td className="num px-3 py-2">{item.valued_minutes > 0 ? formatUsd(item.value_usd) : <span className="rounded bg-danger-soft px-1.5 py-0.5 text-xs font-bold text-danger">بلا قيمة</span>}</td>
                   <td className="num px-3 py-2">{formatNumber(item.k16_area)}</td>
                   <td className="num px-3 py-2">{formatUsd(item.price)}</td>

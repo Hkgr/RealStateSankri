@@ -51,6 +51,14 @@ try {
         p.notes, p.sourceRowStart, p.sourceRowEnd, p.mergedSourceRows],
     )
     const parcelId = result.insertId
+    for (const l of p.operationLines ?? []) {
+      await connection.execute(
+        `INSERT INTO operation_lines (parcel_id, kashf16_ref, ownership_group, total_area, k16_area, k16_value_syp, k16_value_usd,
+           sankari_value_usd, asali_value_usd, source_row, source_row_end) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+        [parcelId, l.kashf16Ref, l.ownershipGroup, l.totalArea, l.k16Area, l.k16ValueSyp, l.k16ValueUsd, l.sankariValueUsd,
+          l.asaliValueUsd, l.sourceRow, l.sourceRowEnd],
+      )
+    }
     for (const o of p.owners) {
       await connection.execute(
         'INSERT INTO parcel_owners (parcel_id, seq, owner_name, shares, area, source_row) VALUES (?,?,?,?,?,?)',
@@ -76,11 +84,16 @@ try {
   await connection.commit()
 
   // Prove the database holds exactly what the sheet holds.
+  // Totals count the parcels and the Kashf 16 lines kept under them.
   const [[db]] = await connection.query(`
-    SELECT SUM(k16_value_usd) k16ValueUsd, SUM(sankari_value_usd) sankariValueUsd, SUM(asali_value_usd) asaliValueUsd,
-           SUM(k16_value_syp) k16ValueSyp, SUM(k16_area) k16Area, SUM(minute_area) minuteArea,
-           (SELECT COUNT(*) FROM annotations) annotationRows, (SELECT COUNT(*) FROM purchases) purchaseRows
-    FROM parcels`)
+    SELECT
+      (SELECT SUM(k16_value_usd) FROM parcels) + (SELECT COALESCE(SUM(k16_value_usd), 0) FROM operation_lines) k16ValueUsd,
+      (SELECT SUM(sankari_value_usd) FROM parcels) + (SELECT COALESCE(SUM(sankari_value_usd), 0) FROM operation_lines) sankariValueUsd,
+      (SELECT SUM(asali_value_usd) FROM parcels) + (SELECT COALESCE(SUM(asali_value_usd), 0) FROM operation_lines) asaliValueUsd,
+      (SELECT SUM(k16_value_syp) FROM parcels) + (SELECT COALESCE(SUM(k16_value_syp), 0) FROM operation_lines) k16ValueSyp,
+      (SELECT SUM(k16_area) FROM parcels) + (SELECT COALESCE(SUM(k16_area), 0) FROM operation_lines) k16Area,
+      (SELECT SUM(minute_area) FROM parcels) minuteArea,
+      (SELECT COUNT(*) FROM annotations) annotationRows, (SELECT COUNT(*) FROM purchases) purchaseRows`)
   let ok = true
   // Figures on a minute's later rows are not counted (the first row holds the data), so they are taken off the sheet totals.
   const left = (key) => excluded[key] ?? 0
