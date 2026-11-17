@@ -4,6 +4,7 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS annotations;
+DROP TABLE IF EXISTS operation_lines;
 DROP TABLE IF EXISTS purchases;
 DROP TABLE IF EXISTS parcel_owners;
 DROP TABLE IF EXISTS parcels;
@@ -89,6 +90,27 @@ CREATE TABLE purchases (
   KEY ix_purchases_parcel (parcel_id),
   KEY ix_purchases_date (purchase_date),
   CONSTRAINT fk_purchases_parcel FOREIGN KEY (parcel_id) REFERENCES parcels (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- A Kashf 16 line written under a minute that is listed twice in the sheet. The minute keeps its own data (first
+-- row); this line is a purchase operation of its own, so its value still counts in the totals.
+CREATE TABLE operation_lines (
+  id                INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  parcel_id         INT UNSIGNED NOT NULL COMMENT 'المحضر الذي كُتب تحته السطر',
+  kashf16_ref       VARCHAR(40) NOT NULL,
+  ownership_group   VARCHAR(20) NOT NULL COMMENT 'الملكية كما كُتبت في هذا السطر',
+  total_area        DECIMAL(14,3) NULL,
+  k16_area          DECIMAL(14,3) NULL,
+  k16_value_syp     DECIMAL(18,2) NULL,
+  k16_value_usd     DECIMAL(18,3) NULL,
+  sankari_value_usd DECIMAL(18,3) NULL,
+  asali_value_usd   DECIMAL(18,3) NULL,
+  source_row        INT UNSIGNED NOT NULL,
+  source_row_end    INT UNSIGNED NOT NULL,
+  KEY ix_lines_parcel (parcel_id),
+  KEY ix_lines_ref (kashf16_ref),
+  CONSTRAINT fk_lines_parcel FOREIGN KEY (parcel_id) REFERENCES parcels (id) ON DELETE CASCADE,
+  CONSTRAINT fk_lines_group FOREIGN KEY (ownership_group) REFERENCES ownership_groups (code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Registered owners listed under parcels that are not ours yet ("أراضي ذات مشاكل").

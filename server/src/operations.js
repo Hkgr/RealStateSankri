@@ -26,19 +26,31 @@ export async function loadOperations(rows, filters) {
      FROM parcels p WHERE p.kashf16_ref IS NULL AND ${clause.sql}`,
     clause.params,
   )
-  return {
-    items: items.map((item) => ({
-      ...item,
-      price: item.value_usd != null && item.k16_area > 0 ? Math.round((item.value_usd / item.k16_area) * 100) / 100 : null,
-      purchase_year: item.first_purchase_date ? Number(String(item.first_purchase_date).slice(0, 4)) : null,
-    })),
-    loose: loose[0],
+  // Kashf 16 lines written under a minute that is listed twice: purchase operations of their own.
+  const lines = await rows(
+    `SELECT l.kashf16_ref ref, p.minute_no listed_under, p.first_purchase_date, r.name_ar regions, g.name_ar owners,
+            l.k16_value_usd value_usd, l.k16_value_syp value_syp, l.k16_area, l.total_area, (p.kashf16_ref IS NULL) own_minute
+     FROM operation_lines l JOIN parcels p ON p.id = l.parcel_id JOIN regions r ON r.id = p.region_id
+          JOIN ownership_groups g ON g.code = l.ownership_group
+     WHERE ${clause.sql}`,
+    clause.params,
+  )
+  const withDerived = (item) => ({
+    ...item,
+    price: item.value_usd != null && item.k16_area > 0 ? Math.round((item.value_usd / item.k16_area) * 100) / 100 : null,
+    purchase_year: item.first_purchase_date ? Number(String(item.first_purchase_date).slice(0, 4)) : null,
+  })
+  const all = items.map((item) => withDerived({ ...item, listed_under: null }))
+  for (const line of lines) {
+    // The minute it hangs under is already counted in its own operation, so the line adds no minutes of its own.
+    all.push(withDerived({ ref: line.ref, minutes: 0, valued_minutes: line.value_usd != null ? 1 : 0, owned_area: null, listed_under: line.listed_under, ...line }))
   }
+  return { items: all, loose: loose[0], extra_minutes: lines.filter((line) => line.own_minute).length }
 }
 
 /** The purchases report: how many operations, how many minutes in each, and what they are worth. */
 export async function buildOperations(rows, filters) {
-  const { items, loose } = await loadOperations(rows, filters)
+  const { items, loose, extra_minutes: extraMinutes } = await loadOperations(rows, filters)
   const sum = (pick) => items.reduce((total, item) => total + (pick(item) ?? 0), 0)
   const byYear = new Map()
   for (const item of items) {
@@ -53,7 +65,7 @@ export async function buildOperations(rows, filters) {
     summary: {
       operations: items.length,
       valued_operations: items.filter((i) => i.valued_minutes > 0).length,
-      minutes: sum((i) => i.minutes),
+      minutes: sum((i) => i.minutes) + extraMinutes,
       value_usd: sum((i) => i.value_usd),
       value_syp: sum((i) => i.value_syp),
       k16_area: sum((i) => i.k16_area),
@@ -84,4 +96,15 @@ export async function operationOf(rows, ref) {
     price: totals.value_usd != null && totals.k16_area > 0 ? Math.round((totals.value_usd / totals.k16_area) * 100) / 100 : null,
     minutes_list: minutes,
   }
+}
+
+/** Kashf 16 lines written under a minute that is listed twice (each is a purchase operation of its own). */
+export async function linesOf(rows, parcelId) {
+  const lines = await rows(
+    `SELECT l.kashf16_ref ref, g.name_ar owners, l.total_area, l.k16_area, l.k16_value_usd value_usd, l.k16_value_syp value_syp,
+            l.source_row, l.source_row_end
+     FROM operation_lines l JOIN ownership_groups g ON g.code = l.ownership_group WHERE l.parcel_id = ? ORDER BY l.source_row`,
+    [parcelId],
+  )
+  return lines
 }

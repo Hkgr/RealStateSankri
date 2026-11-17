@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import express from 'express'
 import { buildAnalytics } from './analytics.js'
 import { annotationClause, parcelClause, readFilters } from './filters.js'
-import { buildOperations, operationOf } from './operations.js'
+import { buildOperations, linesOf, operationOf } from './operations.js'
 import { buildQuality, missingRecords } from './quality.js'
 import { annotationTableClause, parcelTableClause } from './tableFilters.js'
 
@@ -79,8 +79,27 @@ export function createApp(pool) {
     const without = (key) => parcelClause(f, [key])
     const annWithout = (key) => annotationClause(f, [key])
 
-    const [figures, annFigures, byRegion, regionAnn, byGroup, annByCategory, annByYear, purchasesByMonth, transfers,
+    const [lineTotals, lineRegions, lineGroups, figures, annFigures, byRegion, regionAnn, byGroup, annByCategory, annByYear, purchasesByMonth, transfers,
       judgments, landStatus, acquisition, timing, placers, target, regionCategory] = await Promise.all([
+      // Kashf 16 lines written under a minute: their value counts with the minute they hang under.
+      one(
+        `SELECT COUNT(DISTINCT CASE WHEN NOT EXISTS (SELECT 1 FROM parcels x WHERE x.kashf16_ref = l.kashf16_ref) THEN l.kashf16_ref END) new_operations,
+                COUNT(DISTINCT CASE WHEN p.kashf16_ref IS NULL THEN p.id END) new_minutes,
+                SUM(l.k16_value_usd) value_usd, SUM(l.k16_value_syp) value_syp,
+                SUM(l.sankari_value_usd) sankari_value_usd, SUM(l.asali_value_usd) asali_value_usd
+         FROM operation_lines l JOIN parcels p ON p.id = l.parcel_id WHERE ${all.sql}`,
+        all.params,
+      ),
+      rows(
+        `SELECT p.region_id id, SUM(l.k16_value_usd) value_usd FROM operation_lines l JOIN parcels p ON p.id = l.parcel_id
+         WHERE ${without('region').sql} GROUP BY p.region_id`,
+        without('region').params,
+      ),
+      rows(
+        `SELECT p.ownership_group code, SUM(l.k16_value_usd) value_usd FROM operation_lines l JOIN parcels p ON p.id = l.parcel_id
+         WHERE ${without('group').sql} GROUP BY p.ownership_group`,
+        without('group').params,
+      ),
       one(
         `SELECT COUNT(*) parcels, SUM(p.is_damaged) damaged, SUM(p.minute_area) owned_area, SUM(p.total_area) total_area,
                 SUM(p.k16_value_usd) value_usd, SUM(p.sankari_value_usd) sankari_value_usd, SUM(p.asali_value_usd) asali_value_usd,
@@ -182,11 +201,24 @@ export function createApp(pool) {
     transfers.forEach((r) => (years.get(r.year).transfers = r.n))
     judgments.forEach((r) => (years.get(r.year).judgments = r.n))
 
+    const plus = (a, b) => (a == null && b == null ? null : (a ?? 0) + (b ?? 0))
+    const lineRegionValue = new Map(lineRegions.map((r) => [r.id, r.value_usd]))
+    const lineGroupValue = new Map(lineGroups.map((g) => [g.code, g.value_usd]))
     res.json({
       data: {
-        figures: { ...figures, ...annFigures },
-        by_region: byRegion.map((r) => ({ ...r, annotations: annotationsByRegion.get(r.id) ?? 0 })),
-        by_group: byGroup,
+        figures: {
+          ...figures,
+          ...annFigures,
+          value_usd: plus(figures.value_usd, lineTotals.value_usd),
+          value_syp: plus(figures.value_syp, lineTotals.value_syp),
+          sankari_value_usd: plus(figures.sankari_value_usd, lineTotals.sankari_value_usd),
+          asali_value_usd: plus(figures.asali_value_usd, lineTotals.asali_value_usd),
+          operations: figures.operations + lineTotals.new_operations,
+          valued_operations: figures.valued_operations + lineTotals.new_operations,
+          operation_minutes: figures.operation_minutes + lineTotals.new_minutes,
+        },
+        by_region: byRegion.map((r) => ({ ...r, value_usd: plus(r.value_usd, lineRegionValue.get(r.id)), annotations: annotationsByRegion.get(r.id) ?? 0 })),
+        by_group: byGroup.map((g) => ({ ...g, value_usd: plus(g.value_usd, lineGroupValue.get(g.code)) })),
         annotations_by_category: annByCategory,
         annotations_by_year: annByYear,
         purchases_by_year: purchasesByMonth,
@@ -277,8 +309,8 @@ export function createApp(pool) {
         [annotationCount, parcel.region_id, parcel.region_id],
       ),
     ])
-    const operation = await operationOf(rows, parcel.kashf16_ref)
-    res.json({ data: { parcel, owners, purchases, annotations, operation, region: { name: parcel.region, ...regionStats } } })
+    const [operation, extraOperations] = await Promise.all([operationOf(rows, parcel.kashf16_ref), linesOf(rows, id)])
+    res.json({ data: { parcel, owners, purchases, annotations, operation, extra_operations: extraOperations, region: { name: parcel.region, ...regionStats } } })
   })
 
   router.get('/annotations', async (req, res) => {

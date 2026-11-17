@@ -95,7 +95,7 @@ export function ParcelPage() {
 }
 
 function ParcelDashboard({ detail }: { detail: ParcelDetail }) {
-  const { parcel: p, owners, purchases, annotations, region, operation } = detail
+  const { parcel: p, owners, purchases, annotations, region, operation, extra_operations: extraOperations } = detail
   const [category, setCategory] = useState('')
   const [search, setSearch] = useState('')
   const [timing, setTiming] = useState('')
@@ -289,6 +289,32 @@ function ParcelDashboard({ detail }: { detail: ParcelDetail }) {
                 </li>
               ))}
             </ul>
+          </div>
+        </Card>
+      )}
+
+      {extraOperations.length > 0 && (
+        <Card title="عملية شراء أخرى مسجّلة تحت هذا المحضر" hint="المحضر مذكور مرتين في الملف: بياناته من أول صف له، وهذا السطر عملية شراء مستقلة في الكشف 16 وقيمتها محسوبة في الإجمالي">
+          <div className="grid grid-cols-1 gap-2.5">
+            {extraOperations.map((line) => (
+              <dl key={line.ref} className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+                <Fact label="رقم الكشف 16">
+                  <span className="num">{line.ref}</span>
+                </Fact>
+                <Fact label="القيمة ($)">
+                  <span className="num">{formatUsd(line.value_usd)}</span>
+                </Fact>
+                <Fact label="القيمة (ل.س)">
+                  <span className="num">{formatNumber(line.value_syp)}</span>
+                </Fact>
+                <Fact label="المساحة (م²)">
+                  <span className="num">{formatNumber(line.total_area)}</span>
+                </Fact>
+                <Fact label="الملكية في السطر / صف الإكسل">
+                  {line.owners} · <span className="num">{line.source_row}</span>
+                </Fact>
+              </dl>
+            ))}
           </div>
         </Card>
       )}
