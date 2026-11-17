@@ -51,12 +51,12 @@ export function Tabs<T extends string>({ label, items, value, onChange, idPrefix
               event.preventDefault()
             }}
             className={`inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-4 text-sm font-bold transition-colors ${
-              selected ? 'bg-white text-ink shadow-sm' : 'text-ink-muted hover:text-ink'
+              selected ? 'bg-night text-white shadow-sm' : 'text-ink-muted hover:text-ink'
             }`}
           >
             {item.label}
             {item.count != null && (
-              <span className={`num rounded-full px-1.5 text-xs ${selected ? 'bg-brand-soft text-brand-ink' : 'bg-white/70'}`}>
+              <span className={`num rounded-full px-1.5 text-xs ${selected ? 'bg-brand-bright text-night' : 'bg-white/70'}`}>
                 {item.count}
               </span>
             )}

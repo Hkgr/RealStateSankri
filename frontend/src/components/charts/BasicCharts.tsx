@@ -126,7 +126,7 @@ export function Legend({
   format?: (value: number) => string
 }) {
   return (
-    <ul className="mt-2 grid gap-1">
+    <ul className="mt-2 grid grid-cols-1 gap-1">
       {items.map((item) => (
         <li key={item.key}>
           <button

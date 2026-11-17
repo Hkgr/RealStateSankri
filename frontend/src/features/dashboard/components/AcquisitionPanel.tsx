@@ -54,7 +54,7 @@ export function AcquisitionPanel({ data, filters, toggle }: PanelProps) {
   const methodItems: ChartItem[] = data.acquisition_methods.map((s) => ({ key: s.code, label: ACQUISITION_LABELS[s.code] ?? s.code, value: s.parcels, color: ACQUISITION_COLORS[s.code] ?? '#94a3b8' }))
 
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <Card className="lg:col-span-3" title="عمليات الشراء بحسب الكشف 16" hint="كل رقم في الكشف 16 عملية شراء تضم عدة محاضر؛ قيمتها ومساحتها مكتوبتان مرة واحدة على أول محضر فيها">
         {operations.isError && !operations.data ? (
           <ErrorState message={operations.error.message} onRetry={() => void operations.refetch()} compact />
@@ -86,7 +86,7 @@ export function AcquisitionPanel({ data, filters, toggle }: PanelProps) {
       </Card>
 
       <Card className="lg:col-span-2" title="كيف تُقرأ هذه الصفحة" hint="مصطلحات الملف">
-        <dl className="grid gap-x-6 gap-y-3 text-sm leading-7 sm:grid-cols-2">
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm leading-7 sm:grid-cols-2">
           <div>
             <dt className="font-bold text-ink">عملية الشراء (الكشف 16)</dt>
             <dd className="text-ink-muted">رقم البند في الكشف 16 الذي اشتُريت به المحاضر. القيمة تخص العملية كلها لا المحضر الأول وحده.</dd>

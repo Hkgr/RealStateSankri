@@ -8,6 +8,7 @@ import { NoMatchRow, TableToolbar, ToolbarItem } from '../../../components/ui/Ta
 import { formatNumber, formatUsd } from '../../../lib/format'
 import { matchesSearch } from '../../../lib/search'
 import type { OperationRow, OperationsReport as Report } from '../../../services/types'
+import { SERIES_COLOR, SERIES_COLOR_ALT } from '../../../lib/labels'
 
 type SortKey = 'ref' | 'minutes' | 'value_usd' | 'k16_area' | 'price' | 'purchase_year'
 
@@ -69,8 +70,8 @@ export function OperationsReport({ report, charts = true }: { report: Report; ch
     const categories = byYear.map((row) => ({ key: String(row.year ?? 'none'), label: row.year == null ? 'بلا تاريخ' : String(row.year) }))
     return {
       categories,
-      count: [{ key: 'operations', name: 'عمليات الشراء', color: '#0f766e', data: byYear.map((row) => row.operations) }],
-      value: [{ key: 'value', name: 'القيمة $', color: '#b8892b', data: byYear.map((row) => Math.round(row.value_usd)) }],
+      count: [{ key: 'operations', name: 'عمليات الشراء', color: SERIES_COLOR, data: byYear.map((row) => row.operations) }],
+      value: [{ key: 'value', name: 'القيمة $', color: SERIES_COLOR_ALT, data: byYear.map((row) => Math.round(row.value_usd)) }],
     }
   }, [byYear])
 
@@ -85,8 +86,8 @@ export function OperationsReport({ report, charts = true }: { report: Report; ch
   const yearOptions = [...byYear.filter((row) => row.year != null).map((row) => ({ value: String(row.year), label: String(row.year) })), ...(byYear.some((row) => row.year == null) ? [{ value: 'none', label: 'بلا تاريخ' }] : [])]
 
   return (
-    <div className="grid gap-4">
-      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="عمليات الشراء" value={formatNumber(summary.operations)} hint={`${formatNumber(summary.valued_operations)} منها مقيَّمة`} />
         <Stat label="المحاضر ضمنها" value={formatNumber(summary.minutes)} hint={summary.operations ? `بمتوسط ${formatNumber(Math.round((summary.minutes / summary.operations) * 10) / 10)} محضر للعملية` : undefined} />
         <Stat label="القيمة الإجمالية" value={formatUsd(summary.value_usd)} hint={`${formatNumber(summary.value_syp)} ل.س`} />
@@ -94,7 +95,7 @@ export function OperationsReport({ report, charts = true }: { report: Report; ch
       </div>
 
       {charts && byYear.length > 0 && (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card title="عمليات الشراء بحسب السنة" hint="سنة أول عقد شراء في العملية">
             <StackedChart categories={years.categories} series={years.count} unit="عملية" ariaLabel="عدد عمليات الشراء في كل سنة" className="h-56" />
           </Card>

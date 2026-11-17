@@ -31,7 +31,7 @@ export function ExplorerBar({ meta, filters, activeCount, onChange, onReset }: E
 
   return (
     <section aria-label="مستكشف البيانات" className="no-print rounded-2xl border border-line bg-surface p-4 shadow-card">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
         <SelectField
           variant="bar"
           label="المنطقة"

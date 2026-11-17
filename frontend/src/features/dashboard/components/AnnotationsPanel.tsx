@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { DonutChart, HBarChart, HStackedChart, StackedChart, type ChartItem } from '../../../components/charts/BasicCharts'
 import { Card } from '../../../components/ui/Card'
 import { formatNumber, formatPercent, share } from '../../../lib/format'
-import { CATEGORY_COLORS, TARGET_COLORS, TARGET_LABELS, TIMING_LABELS } from '../../../lib/labels'
+import { CATEGORY_COLORS, SERIES_COLOR, TARGET_COLORS, TARGET_LABELS, TIMING_LABELS } from '../../../lib/labels'
 import type { Overview } from '../../../services/types'
 import type { FilterKey, Filters } from '../useDashboardFilters'
 import { useYearSeries } from '../useYearSeries'
@@ -20,7 +20,7 @@ export function AnnotationsPanel({ data, filters, toggle, onReset }: PanelProps)
   const { categories, series } = useYearSeries(data)
 
   const placerItems: ChartItem[] = data.top_placers.map((p, i) => ({ key: `${i}-${p.name}`, label: p.name, value: p.annotations, color: CATEGORY_COLORS[p.category] ?? '#64748b' }))
-  const timingItems: ChartItem[] = data.timing.map((t) => ({ key: t.code, label: TIMING_LABELS[t.code] ?? t.code, value: t.annotations, color: t.code === 'unknown' ? '#94a3b8' : '#0f766e' }))
+  const timingItems: ChartItem[] = data.timing.map((t) => ({ key: t.code, label: TIMING_LABELS[t.code] ?? t.code, value: t.annotations, color: t.code === 'unknown' ? '#94a3b8' : SERIES_COLOR }))
   const targetItems: ChartItem[] = data.target_party.map((t) => ({ key: t.code, label: TARGET_LABELS[t.code] ?? t.code, value: t.annotations, color: TARGET_COLORS[t.code] ?? '#94a3b8' }))
 
   const regionRows = useMemo(() => data.by_region.filter((r) => r.annotations > 0).sort((a, b) => b.annotations - a.annotations), [data.by_region])
@@ -32,8 +32,8 @@ export function AnnotationsPanel({ data, filters, toggle, onReset }: PanelProps)
   }))
 
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
-      <div className="grid gap-3 sm:grid-cols-2 lg:col-span-3 lg:grid-cols-6">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:col-span-3 lg:grid-cols-6">
         {data.annotations_by_category.map((c) => {
           const selected = filters.category === c.code
           return (

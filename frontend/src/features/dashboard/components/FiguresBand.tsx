@@ -12,9 +12,9 @@ interface FigureProps {
 }
 
 function Figure({ icon, label, value, hint, tone = 'brand' }: FigureProps) {
-  const toneClass = tone === 'brand' ? 'bg-brand-soft text-brand-ink' : 'bg-gold-soft text-gold'
+  const toneClass = tone === 'brand' ? 'bg-night text-brand-bright' : 'bg-brand-soft text-brand-ink'
   return (
-    <div className="flex min-w-0 items-start gap-3 rounded-2xl border border-line bg-surface p-4 shadow-card">
+    <div className="flex min-w-0 items-start gap-3 rounded-2xl border border-line bg-gradient-to-br from-surface to-brand-wash p-4 shadow-card">
       <div className={`grid size-10 shrink-0 place-items-center rounded-xl ${toneClass}`} aria-hidden="true">
         {icon}
       </div>
@@ -30,7 +30,7 @@ function Figure({ icon, label, value, hint, tone = 'brand' }: FigureProps) {
 export function FiguresBand({ figures, loading }: { figures: Figures | undefined; loading: boolean }) {
   if (!figures) {
     return (
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-busy={loading}>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-busy={loading}>
         {Array.from({ length: 8 }, (_, i) => (
           <div key={i} className="skeleton h-24" aria-hidden="true" />
         ))}
@@ -39,7 +39,7 @@ export function FiguresBand({ figures, loading }: { figures: Figures | undefined
   }
 
   return (
-    <div className={`grid gap-3 sm:grid-cols-2 lg:grid-cols-4 transition-opacity ${loading ? 'opacity-60' : ''}`} aria-busy={loading}>
+    <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 transition-opacity ${loading ? 'opacity-60' : ''}`} aria-busy={loading}>
       <Figure icon={<Building2 className="size-5" />} label="العقارات (المحاضر)" value={formatNumber(figures.parcels)} hint={`منها ${formatNumber(figures.damaged)} متضرر · ${formatNumber(figures.regions)} منطقة`} />
       <Figure icon={<Ruler className="size-5" />} label="المساحة الإجمالية (م²)" value={formatNumber(figures.total_area)} hint="مجموع «المساحة الإجمالية» للمحاضر" />
       <Figure icon={<Layers className="size-5" />} label="المساحة المملوكة (م²)" value={formatNumber(figures.owned_area)} hint="مجموع «الملكية من مساحة المحضر»" />

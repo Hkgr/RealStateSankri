@@ -18,8 +18,10 @@ export function Card({ title, hint, actions, children, className = '', style, id
       id={id}
       style={style}
       aria-labelledby={title ? headingId : undefined}
-      className={`min-w-0 rounded-2xl border border-line bg-surface p-4 shadow-card sm:p-5 ${className}`}
+      className={`relative min-w-0 rounded-2xl border border-line bg-surface p-4 shadow-card sm:p-5 ${className}`}
     >
+      {/* Short gold tab on the top edge: the card's accent, taken from the logo's mark. */}
+      <span aria-hidden="true" className="pointer-events-none absolute start-5 top-0 h-[3px] w-10 rounded-b-full bg-gradient-to-l from-brand-bright to-brand" />
       {(title || actions) && (
         <header className="mb-3 flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
           <div className="min-w-0">

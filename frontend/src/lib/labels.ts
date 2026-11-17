@@ -1,4 +1,9 @@
 // Arabic labels and one colour per concept, shared by every chart, pill and table.
+
+/** Deep gold of the brand, for a plain single series; categories keep their own colours below. */
+export const SERIES_COLOR = '#b5801a'
+/** Charcoal of the brand lettering, for a second plain series. */
+export const SERIES_COLOR_ALT = '#3a3f47'
 export const CATEGORY_COLORS: Record<string, string> = {
   arbitration: '#4f46e5',
   security: '#be123c',

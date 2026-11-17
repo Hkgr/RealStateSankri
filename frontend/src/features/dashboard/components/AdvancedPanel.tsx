@@ -7,7 +7,7 @@ import { SelectField } from '../../../components/ui/SelectField'
 import { NoMatchRow, TableToolbar, ToolbarItem } from '../../../components/ui/TableToolbar'
 import { ErrorState, NoDataState } from '../../../components/ui/StateViews'
 import { formatDecimal, formatNumber, formatPercent, formatUsd, share } from '../../../lib/format'
-import { CATEGORY_COLORS } from '../../../lib/labels'
+import { CATEGORY_COLORS, SERIES_COLOR } from '../../../lib/labels'
 import { matchesSearch } from '../../../lib/search'
 import type { Analytics, Figures } from '../../../services/types'
 import { useAnalytics } from '../queries'
@@ -29,12 +29,12 @@ function Stat({ label, value, hint }: { label: string; value: ReactNode; hint?: 
 
 function Section({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
   return (
-    <section className="grid gap-4">
+    <section className="grid grid-cols-1 gap-4">
       <div className="border-s-4 border-brand ps-3">
         <h2 className="text-lg font-extrabold text-ink">{title}</h2>
         <p className="text-sm text-ink-muted">{hint}</p>
       </div>
-      <div className="grid gap-4 lg:grid-cols-3">{children}</div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">{children}</div>
     </section>
   )
 }
@@ -179,7 +179,7 @@ function ExposureSection({ exposure, totalValue }: { exposure: Analytics['exposu
   return (
     <Section title="التعرّض للإشارات" hint="الإشارات الحرجة: دعوى تحكيمية وإشارة أمنية ودولة / استملاك. أما التصفية وفسخ التسجيل فمسجّلتان لمصلحة د. سنكري">
       <Card title="العقارات والقيمة بحسب الخطورة">
-        <div className="grid gap-2.5">
+        <div className="grid grid-cols-1 gap-2.5">
           <Stat
             label="عليها إشارة حرجة"
             value={formatNumber(exposure.critical.parcels)}
@@ -221,7 +221,7 @@ function ExposureSection({ exposure, totalValue }: { exposure: Analytics['exposu
       </Card>
 
       <Card title="الأكثر تعرّضًا" hint="بعدد الإشارات الحرجة">
-        <ol className="grid gap-2">
+        <ol className="grid grid-cols-1 gap-2">
           {exposure.top_parcels.map((p) => (
             <li key={p.id}>
               <Link to={`/parcels/${p.id}`} className="flex items-center justify-between gap-3 rounded-xl bg-paper px-3 py-2 text-sm transition-colors hover:bg-brand-soft">
@@ -244,7 +244,7 @@ function ExposureSection({ exposure, totalValue }: { exposure: Analytics['exposu
 }
 
 function PricingSection({ pricing }: { pricing: Analytics['pricing'] }) {
-  const regionItems: ChartItem[] = pricing.by_region.map((r) => ({ key: String(r.id), label: `${r.name} (${r.operations})`, value: r.price, color: '#0f766e' }))
+  const regionItems: ChartItem[] = pricing.by_region.map((r) => ({ key: String(r.id), label: `${r.name} (${r.operations})`, value: r.price, color: SERIES_COLOR }))
   const stats = pricing.stats
   return (
     <Section title="سعر المتر" hint="قيمة عملية الشراء بحسب الكشف 16 مقسومة على مساحتها في الكشف نفسه (الرقم بين قوسين عدد عمليات الشراء)">
@@ -262,7 +262,7 @@ function PricingSection({ pricing }: { pricing: Analytics['pricing'] }) {
       </Card>
 
       <Card className="lg:col-span-3" title="تغطية التقييم">
-        <div className="grid gap-2.5 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
           <Stat label="عمليات الشراء ضمن الاختيار" value={formatNumber(pricing.unvalued.total)} />
           <Stat label="عمليات بلا قيمة" value={formatNumber(pricing.unvalued.operations)} hint={pricing.unvalued.operations ? `تضم ${formatNumber(pricing.unvalued.minutes)} محضرًا` : 'كل العمليات مقيَّمة'} />
         </div>
@@ -281,7 +281,7 @@ function LagsSection({ lags }: { lags: Analytics['lags'] }) {
     categories: buckets.map((b) => ({ key: b.key, label: b.label })),
     series: [{ key: 'count', name: 'العدد', color, data: buckets.map((b) => b.count) }],
   })
-  const purchase = bucketsToChart(p.buckets, '#0f766e')
+  const purchase = bucketsToChart(p.buckets, SERIES_COLOR)
   const annotation = bucketsToChart(t.buckets, '#be123c')
   const regionItems: ChartItem[] = p.by_region.map((r) => ({ key: String(r.id), label: `${r.name} (${r.parcels})`, value: r.median, color: '#4f46e5' }))
 
@@ -350,7 +350,7 @@ export function AdvancedPanel({ filters, figures, onReset }: { filters: Filters;
   if (query.isError && !data) return <ErrorState message={query.error.message} onRetry={() => void query.refetch()} />
   if (!data) {
     return (
-      <div className="grid gap-4 lg:grid-cols-3" aria-busy="true">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3" aria-busy="true">
         {Array.from({ length: 6 }, (_, i) => (
           <div key={i} className="skeleton h-72" aria-hidden="true" />
         ))}
@@ -360,7 +360,7 @@ export function AdvancedPanel({ filters, figures, onReset }: { filters: Filters;
   if (data.exposure.all.parcels === 0) return <NoDataState onReset={onReset} />
 
   return (
-    <div className={`grid gap-8 transition-opacity ${query.isFetching ? 'opacity-70' : ''}`}>
+    <div className={`grid grid-cols-1 gap-8 transition-opacity ${query.isFetching ? 'opacity-70' : ''}`}>
       <CasesSection cases={data.cases} />
       <ExposureSection exposure={data.exposure} totalValue={figures.value_usd} />
       <PricingSection pricing={data.pricing} />

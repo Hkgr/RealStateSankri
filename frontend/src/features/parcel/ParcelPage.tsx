@@ -10,7 +10,7 @@ import { NoMatchRow, TableToolbar, ToolbarItem } from '../../components/ui/Table
 import { SiteHeader } from '../../layout/SiteHeader'
 import { matchesSearch } from '../../lib/search'
 import { formatDate, formatDecimal, formatNumber, formatPercent, formatUsd, share } from '../../lib/format'
-import { ACQUISITION_LABELS, CATEGORY_COLORS, CHANNEL_LABELS, LAND_STATUS_LABELS, TARGET_LABELS, TIMING_LABELS } from '../../lib/labels'
+import { ACQUISITION_LABELS, CATEGORY_COLORS, CHANNEL_LABELS, LAND_STATUS_LABELS, SERIES_COLOR, TARGET_LABELS, TIMING_LABELS } from '../../lib/labels'
 import type { ParcelDetail } from '../../services/types'
 import { CategoryPill } from '../dashboard/components/AnnotationsTable'
 import { GroupPill } from '../dashboard/components/ParcelsPanel'
@@ -52,7 +52,7 @@ function Compare({ label, mine, reference, referenceLabel, format }: { label: st
   if (mine == null || reference == null) return null
   const max = Math.max(mine, reference, 1e-9)
   return (
-    <li className="grid gap-1.5">
+    <li className="grid grid-cols-1 gap-1.5">
       <p className="text-sm font-bold text-ink">{label}</p>
       {[
         { name: 'هذا العقار', value: mine, color: 'bg-brand' },
@@ -77,11 +77,11 @@ export function ParcelPage() {
   return (
     <div className="min-h-screen">
       <SiteHeader back />
-      <main className="mx-auto grid max-w-7xl gap-4 px-4 py-5 sm:px-6">
+      <main className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-4 py-5 sm:px-6">
         {query.isError ? (
           <ErrorState message={query.error.message} onRetry={() => void query.refetch()} />
         ) : !query.data ? (
-          <div className="grid gap-4" aria-busy="true">
+          <div className="grid grid-cols-1 gap-4" aria-busy="true">
             <div className="skeleton h-12" />
             <div className="skeleton h-28" />
             <div className="skeleton h-96" />
@@ -143,7 +143,7 @@ function ParcelDashboard({ detail }: { detail: ParcelDetail }) {
   const timingItems: ChartItem[] = useMemo(() => {
     const counts = new Map<string, number>()
     for (const a of annotations) counts.set(a.timing ?? 'unknown', (counts.get(a.timing ?? 'unknown') ?? 0) + 1)
-    return [...counts.entries()].map(([code, n]) => ({ key: code, label: TIMING_LABELS[code] ?? code, value: n, color: code === 'unknown' ? '#94a3b8' : '#0f766e' })).sort((a, b) => b.value - a.value)
+    return [...counts.entries()].map(([code, n]) => ({ key: code, label: TIMING_LABELS[code] ?? code, value: n, color: code === 'unknown' ? '#94a3b8' : SERIES_COLOR })).sort((a, b) => b.value - a.value)
   }, [annotations])
 
   const placerItems: ChartItem[] = useMemo(() => {
@@ -159,7 +159,7 @@ function ParcelDashboard({ detail }: { detail: ParcelDetail }) {
   const lanes = ['إشارات حرجة', 'إشارات أخرى', 'تسجيل عسلي', 'فراغة', 'حكم', 'شراء']
   const events: TimelineEvent[] = useMemo(() => {
     const list: TimelineEvent[] = []
-    for (const u of purchases) if (u.purchase_date) list.push({ time: utc(u.purchase_date), lane: 'شراء', label: 'عقد شراء', color: '#0f766e', detail: u.purchased_by ?? undefined })
+    for (const u of purchases) if (u.purchase_date) list.push({ time: utc(u.purchase_date), lane: 'شراء', label: 'عقد شراء', color: SERIES_COLOR, detail: u.purchased_by ?? undefined })
     if (p.judgment_date) list.push({ time: utc(p.judgment_date), lane: 'حكم', label: 'حكم قضائي', color: '#c2410c' })
     if (p.transfer_date) list.push({ time: utc(p.transfer_date), lane: 'فراغة', label: 'فراغة لـ د. سنكري', color: '#4f46e5' })
     if (p.asali_registered_on) list.push({ time: utc(p.asali_registered_on), lane: 'تسجيل عسلي', label: 'تسجيل للعسلي', color: '#d97706' })
@@ -210,7 +210,7 @@ function ParcelDashboard({ detail }: { detail: ParcelDetail }) {
         </span>
       </div>
 
-      <section aria-label="مؤشرات العقار" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <section aria-label="مؤشرات العقار" className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <Kpi label="المساحة الإجمالية (م²)" value={formatNumber(p.total_area)} hint={apartment ? 'شقة سكنية: حالة خاصة، لا مساحة أرض' : ownedRatio != null ? `المملوك منها ${formatNumber(p.minute_area)} م² (${formatPercent(ownedRatio)})` : p.minute_area != null ? `المملوك ${formatNumber(p.minute_area)} م²` : undefined} />
         <Kpi label="الحصة السهمية" value={ours != null ? formatDecimal(ours) : owners.length ? `${owners.length} ملّاك` : dash} hint={ours != null ? `${formatPercent(share(ours, TOTAL_SHARES))} من ${formatNumber(TOTAL_SHARES)} سهم` : owners.length ? 'أسهم المالكين المسجّلين' : undefined} />
         <Kpi
@@ -232,7 +232,7 @@ function ParcelDashboard({ detail }: { detail: ParcelDetail }) {
         <Kpi label="من الشراء إلى الفراغة" value={lagDays != null ? `${formatNumber(lagDays)} يومًا` : dash} hint={lagDays != null ? `≈ ${formatDecimal(Math.round((lagDays / 30.44) * 10) / 10)} شهرًا` : 'تاريخ الشراء أو الفراغة غير مسجّل'} />
       </section>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card title="توزيع الأسهم" hint={`العقار الواحد ${formatNumber(TOTAL_SHARES)} سهم`}>
           {shareItems.length ? <DonutChart items={shareItems} unit="سهم" ariaLabel="توزيع أسهم العقار" /> : <p className="py-16 text-center text-sm text-ink-muted">لا توجد أسهم مسجّلة لهذا العقار في الملف.</p>}
         </Card>
@@ -242,7 +242,7 @@ function ParcelDashboard({ detail }: { detail: ParcelDetail }) {
         </Card>
 
         <Card title="مقارنة بمنطقة العقار" hint={`${region.name}: ${formatNumber(region.parcels)} عقارًا`}>
-          <ul className="grid gap-4">
+          <ul className="grid grid-cols-1 gap-4">
             <Compare label="عدد الإشارات" mine={annotations.length} reference={region.avg_annotations == null ? null : Math.round(region.avg_annotations * 10) / 10} referenceLabel="متوسط المنطقة" format={(v) => formatDecimal(v)} />
             <Compare label="سعر المتر ($)" mine={price == null ? null : Math.round(price * 100) / 100} reference={region.price == null ? null : Math.round(region.price * 100) / 100} referenceLabel="متوسط المنطقة" format={(v) => formatUsd(v)} />
           </ul>
@@ -256,7 +256,7 @@ function ParcelDashboard({ detail }: { detail: ParcelDetail }) {
 
       {operation && (
         <Card title="عملية الشراء (الكشف 16)" hint={`رقم ${operation.ref}: القيمة والمساحة مكتوبتان مرة واحدة على أول محضر في العملية`}>
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
             <div className="grid grid-cols-2 gap-2.5">
               <Fact label="عدد المحاضر في العملية">
                 <span className="num">{formatNumber(operation.minutes)}</span>
@@ -284,7 +284,7 @@ function ParcelDashboard({ detail }: { detail: ParcelDetail }) {
                   >
                     <span className="num">{m.minute_no}</span>
                     <span className="text-xs text-ink-muted">{m.region}</span>
-                    {m.carries_value ? <span className="rounded bg-gold-soft px-1 text-xs font-bold text-gold">القيمة</span> : null}
+                    {m.carries_value ? <span className="rounded bg-gold-soft px-1 text-xs font-bold text-brand-ink">القيمة</span> : null}
                   </Link>
                 </li>
               ))}
@@ -298,7 +298,7 @@ function ParcelDashboard({ detail }: { detail: ParcelDetail }) {
       </Card>
 
       {annotations.length > 0 && (
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <Card title="الإشارات بحسب النوع">
             <DonutChart items={categoryItems} selected={category} onSelect={(key) => setCategory((current) => (current === key ? '' : key))} unit="إشارة" ariaLabel="إشارات العقار بحسب النوع" />
           </Card>
@@ -389,12 +389,12 @@ function ParcelDashboard({ detail }: { detail: ParcelDetail }) {
         )}
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card title="عقود الشراء" hint={purchases.length ? `${formatNumber(purchases.length)} عقد` : undefined}>
           {purchases.length === 0 ? (
             <p className="py-8 text-center text-sm text-ink-muted">لا توجد عقود شراء مسجّلة.</p>
           ) : (
-            <ul className="grid gap-2.5 sm:grid-cols-2">
+            <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               {purchases.map((u) => (
                 <li key={u.seq} className="rounded-xl border border-line bg-paper px-3.5 py-3">
                   <p className="num text-base font-extrabold text-ink">{u.purchase_date ? formatDate(u.purchase_date) : (u.date_raw ?? dash)}</p>
@@ -407,7 +407,7 @@ function ParcelDashboard({ detail }: { detail: ParcelDetail }) {
         </Card>
 
         <Card title="بيانات الملكية والتسجيل">
-          <dl className="grid gap-2.5 sm:grid-cols-2">
+          <dl className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             <Fact label="وضع العقار عند الشراء">{p.land_status ? LAND_STATUS_LABELS[p.land_status] : dash}</Fact>
             <Fact label="طريقة انتقال الملكية">{p.acquisition_method ? ACQUISITION_LABELS[p.acquisition_method] : dash}</Fact>
             <Fact label="تاريخ الفراغة"><span className="num">{formatDate(p.transfer_date)}</span></Fact>
