@@ -191,4 +191,54 @@
   .avoid-break {
     break-inside: avoid;
   }
+
+  /* The page is about 190 mm wide, so nothing may rely on the screen's width or on scrolling. */
+  main {
+    max-width: none !important;
+    padding-inline: 0 !important;
+  }
+  /* Tables: show every column in the page width (text wraps), keep the header on each page, never split a row. */
+  .overflow-x-auto,
+  .overflow-auto,
+  .overflow-y-auto {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+  table {
+    width: 100% !important;
+    min-width: 0 !important;
+    font-size: 10.5px;
+  }
+  /* Headers and pills may wrap, otherwise a table with many columns cannot fit the page. */
+  table .whitespace-nowrap {
+    white-space: normal !important;
+  }
+  thead {
+    display: table-header-group;
+  }
+  tr,
+  li {
+    break-inside: avoid;
+  }
+  th,
+  td {
+    padding: 4px 6px !important;
+  }
+  thead.sticky {
+    position: static !important;
+  }
+  /* Cards stay whole where they fit (the grouping sections hold many cards and may span pages), and lose their
+     screen-only shadows and animation. */
+  section.rounded-2xl {
+    break-inside: avoid;
+    box-shadow: none !important;
+  }
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+  /* Charts are drawn to the width of their box; never wider than the page. */
+  canvas {
+    max-width: 100% !important;
+  }
 }
