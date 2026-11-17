@@ -2,14 +2,7 @@ import { useMemo, useState } from 'react'
 import { DonutChart, HBarChart, StackedChart, type ChartItem } from '../../../components/charts/BasicCharts'
 import { Card } from '../../../components/ui/Card'
 import { formatNumber, formatUsd } from '../../../lib/format'
-import {
-  ACQUISITION_COLORS,
-  ACQUISITION_LABELS,
-  CATEGORY_COLORS,
-  GROUP_COLORS,
-  LAND_STATUS_COLORS,
-  LAND_STATUS_LABELS,
-} from '../../../lib/labels'
+import { ACQUISITION_COLORS, ACQUISITION_LABELS, CATEGORY_COLORS, GROUP_COLORS, LAND_STATUS_COLORS, LAND_STATUS_LABELS, SERIES_COLOR } from '../../../lib/labels'
 import type { Overview } from '../../../services/types'
 import { useYearSeries } from '../useYearSeries'
 import type { FilterKey, Filters } from '../useDashboardFilters'
@@ -37,7 +30,7 @@ export function OverviewPanel({ data, filters, toggle }: PanelProps) {
   const regionItems: ChartItem[] = useMemo(
     () =>
       data.by_region
-        .map((r) => ({ key: String(r.id), label: r.name, value: r[metric] ?? 0, color: '#0f766e' }))
+        .map((r) => ({ key: String(r.id), label: r.name, value: r[metric] ?? 0, color: SERIES_COLOR }))
         .filter((item) => item.value > 0)
         .sort((a, b) => b.value - a.value),
     [data.by_region, metric],
@@ -52,7 +45,7 @@ export function OverviewPanel({ data, filters, toggle }: PanelProps) {
   const { categories, series } = useYearSeries(data)
 
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <Card
         className="lg:col-span-2"
         title="المناطق"

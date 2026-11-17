@@ -85,18 +85,18 @@ function Coverage({ metric, filters, operationsOpen, onToggleOperations }: { met
   const [listOpen, setListOpen] = useState(false)
   const missing = metric.applicable - metric.have
   const percent = share(metric.have, metric.applicable) ?? 0
-  const tone = percent >= 90 ? 'bg-brand' : percent >= 60 ? 'bg-gold' : 'bg-danger'
+  const tone = percent >= 90 ? 'bg-good' : percent >= 60 ? 'bg-gold' : 'bg-danger'
   const operations = metric.drill === 'operations'
   const canOpen = operations || missing > 0
   const open = operations ? operationsOpen : listOpen
   const toggle = operations ? onToggleOperations : () => setListOpen((value) => !value)
 
   return (
-    <li className="grid gap-1.5">
+    <li className="grid grid-cols-1 gap-1.5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3">
         <span className="flex flex-wrap items-center gap-2 font-bold text-ink">
           {metric.label}
-          {metric.pending && missing > 0 && <span className="rounded-full bg-gold-soft px-2 py-0.5 text-xs font-bold text-gold">قيد جمع البيانات</span>}
+          {metric.pending && missing > 0 && <span className="rounded-full bg-gold-soft px-2 py-0.5 text-xs font-bold text-brand-ink">قيد جمع البيانات</span>}
         </span>
         <span className="text-sm text-ink-muted">
           <span className="num font-bold text-ink">{formatNumber(metric.have)}</span> من <span className="num">{formatNumber(metric.applicable)}</span> {metric.unit} ·{' '}
@@ -138,9 +138,9 @@ export function QualityPanel({ filters }: { filters: Filters }) {
   const report = query.data
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <Card title="اكتمال بيانات العقارات" hint={`${formatNumber(report.parcels_total)} عقارًا ضمن الاختيار الحالي`}>
-        <ul className="grid gap-5">
+        <ul className="grid grid-cols-1 gap-5">
           {report.parcels.map((metric) => (
             <Coverage key={metric.key} metric={metric} filters={filters} operationsOpen={operationsOpen} onToggleOperations={() => setOperationsOpen((value) => !value)} />
           ))}
@@ -148,7 +148,7 @@ export function QualityPanel({ filters }: { filters: Filters }) {
       </Card>
 
       <Card title="اكتمال بيانات الإشارات" hint={`${formatNumber(report.annotations_total)} إشارة ضمن الاختيار الحالي`}>
-        <ul className="grid gap-5">
+        <ul className="grid grid-cols-1 gap-5">
           {report.annotations.map((metric) => (
             <Coverage key={metric.key} metric={metric} filters={filters} operationsOpen={operationsOpen} onToggleOperations={() => setOperationsOpen((value) => !value)} />
           ))}

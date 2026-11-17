@@ -2,35 +2,42 @@
 @import "tailwindcss";
 
 /*
- * Warm paper background, deep teal brand and a muted gold accent. The categorical chart colours
- * live in lib/labels.ts so a category has the same colour in every chart.
+ * Identity taken from the Sankari Investment logo: warm gold (the mark) on charcoal (the lettering).
+ * Gold marks identity and emphasis; charcoal carries text and the dark header; teal stays as the "good"
+ * colour of data. Categorical chart colours live in lib/labels.ts so a category looks the same in every chart.
  */
 @theme {
   --font-sans: "Cairo Variable", "Cairo", system-ui, sans-serif;
 
-  --color-paper: #f7f5f0;
-  --color-paper-deep: #efece4;
+  --color-paper: #f5f3ee;
+  --color-paper-deep: #ece9e0;
   --color-surface: #ffffff;
-  --color-line: #e6e1d6;
-  --color-line-strong: #d3ccbd;
+  --color-line: #e5e0d4;
+  --color-line-strong: #d1cab8;
 
-  --color-ink: #1b2327;
-  --color-ink-soft: #435056;
-  --color-ink-muted: #5f6b70;
+  --color-ink: #1d2126;
+  --color-ink-soft: #444a52;
+  --color-ink-muted: #626870;
 
-  --color-brand: #0f5f5c;
-  --color-brand-bright: #14827d;
-  --color-brand-ink: #0b4a47;
-  --color-brand-soft: #e1f0ee;
-  --color-brand-wash: #f1f8f7;
-  --color-gold: #b8892b;
-  --color-gold-soft: #f6edd6;
+  /* Gold of the mark. brand-ink is the dark bronze for text on light backgrounds (AA). */
+  --color-brand: #b5801a;
+  --color-brand-bright: #e0b240;
+  --color-brand-ink: #7a5410;
+  --color-brand-soft: #f7edd2;
+  --color-brand-wash: #fcf8ec;
+  --color-gold: #c8962a;
+  --color-gold-soft: #f6ecd0;
 
+  /* Charcoal of the lettering, used for the header. */
+  --color-night: #1a1d21;
+  --color-night-soft: #272b32;
+
+  --color-good: #0f766e;
   --color-danger: #b42318;
   --color-danger-soft: #fdecea;
 
-  --shadow-card: 0 1px 2px rgb(27 35 39 / 0.04), 0 6px 20px -10px rgb(27 35 39 / 0.12);
-  --shadow-lift: 0 2px 4px rgb(27 35 39 / 0.05), 0 14px 32px -14px rgb(27 35 39 / 0.22);
+  --shadow-card: 0 1px 2px rgb(29 33 38 / 0.05), 0 8px 24px -12px rgb(29 33 38 / 0.16);
+  --shadow-lift: 0 2px 4px rgb(29 33 38 / 0.06), 0 16px 34px -14px rgb(29 33 38 / 0.26);
 
   --animate-enter: enter 0.42s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   --animate-shimmer: shimmer 1.4s linear infinite;
@@ -62,11 +69,17 @@
     -webkit-text-size-adjust: 100%;
   }
 
+  /* Warm paper with a soft gold glow near the top and a very faint dot grid. */
   body {
     margin: 0;
     min-width: 320px;
     min-height: 100vh;
-    background: var(--color-paper);
+    background-color: var(--color-paper);
+    background-image:
+      radial-gradient(900px 320px at 12% 0, rgb(224 178 64 / 0.13), transparent 70%),
+      radial-gradient(rgb(29 33 38 / 0.045) 1px, transparent 1.3px);
+    background-size: auto, 22px 22px;
+    background-repeat: no-repeat, repeat;
   }
 
   /* Latin digits stay aligned and keep their order inside Arabic text. */
@@ -91,14 +104,14 @@
   }
 
   ::selection {
-    background: var(--color-brand);
-    color: #fff;
+    background: #f1d27a;
+    color: var(--color-ink);
   }
 }
 
 @layer components {
   .skeleton {
-    background: linear-gradient(90deg, #ece8de 25%, #f5f2ea 37%, #ece8de 63%);
+    background: linear-gradient(90deg, #ebe7dc 25%, #f5f2ea 37%, #ebe7dc 63%);
     background-size: 400% 100%;
     animation: var(--animate-shimmer);
     border-radius: 12px;
@@ -108,9 +121,30 @@
     animation: var(--animate-enter);
   }
 
-  .brand-rule {
+  /* Dark header: charcoal gradient, the logo's mark as a faint watermark, and a gold hairline underneath. */
+  .site-header {
+    position: relative;
+    isolation: isolate;
+    color: #fff;
+    background: linear-gradient(115deg, #14171a 0%, #1d2025 46%, #2a2e36 100%);
+  }
+  .site-header::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      url("./assets/brand/sankari-mark.svg") no-repeat left -70px center / 230px auto,
+      radial-gradient(520px 200px at 0 100%, rgb(224 178 64 / 0.16), transparent 70%);
+    opacity: 0.08;
+  }
+  .site-header::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
     height: 3px;
-    background: linear-gradient(90deg, var(--color-brand) 0%, var(--color-brand-bright) 60%, var(--color-gold) 100%);
+    background: linear-gradient(90deg, transparent 0%, #b5801a 12%, #f0cc6a 50%, #b5801a 88%, transparent 100%);
   }
 
   .scrollbar-none {
@@ -142,6 +176,14 @@
     background: #fff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+  /* The header prints light (colour logo, no dark fill) to save ink. */
+  .site-header {
+    color: var(--color-ink);
+    background: #fff;
+  }
+  .site-header::before {
+    display: none;
   }
   .no-print {
     display: none !important;

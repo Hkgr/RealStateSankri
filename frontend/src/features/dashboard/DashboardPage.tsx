@@ -1,4 +1,5 @@
 import { Printer } from 'lucide-react'
+import logoColor from '../../assets/brand/sankari-logo.svg'
 import { Button } from '../../components/ui/Button'
 import { ErrorState, NoDataState } from '../../components/ui/StateViews'
 import { TabPanel, Tabs, type TabItem } from '../../components/ui/Tabs'
@@ -34,7 +35,7 @@ export function DashboardPage() {
   return (
     <div className="min-h-screen">
       <SiteHeader importedAt={meta.data?.imported_at ?? null} />
-      <main className="mx-auto grid max-w-7xl gap-4 px-4 py-5 sm:px-6">
+      <main className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-4 py-5 sm:px-6">
         <ExplorerBar meta={meta.data} filters={filters} activeCount={activeCount} onChange={(key, value) => update({ [key]: value }, key === 'q')} onReset={reset} />
         <FiguresBand figures={data?.figures} loading={overview.isFetching} />
 
@@ -52,7 +53,7 @@ export function DashboardPage() {
           {overview.isError && !data ? (
             <ErrorState message={overview.error.message} onRetry={() => void overview.refetch()} />
           ) : !data ? (
-            <div className="grid gap-4 lg:grid-cols-3" aria-busy="true">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3" aria-busy="true">
               {Array.from({ length: 6 }, (_, i) => (
                 <div key={i} className="skeleton h-80" aria-hidden="true" />
               ))}
@@ -71,7 +72,8 @@ export function DashboardPage() {
           )}
         </TabPanel>
 
-        <footer className="pb-6 pt-2 text-center text-xs leading-6 text-ink-muted">
+        <footer className="border-t border-line pb-6 pt-5 text-center text-xs leading-6 text-ink-muted">
+          <img src={logoColor} alt="Sankari Investment" className="mx-auto mb-3 h-9 w-auto opacity-90" />
           المصدر: ملف «تجميع اراضي.xlsx». الأسهم من 2400 سهم للعقار الواحد؛ والقيم بالدولار بحسب الكشف 16 لكل عملية شراء (تُكتب على أول محضر فيها).
         </footer>
       </main>
