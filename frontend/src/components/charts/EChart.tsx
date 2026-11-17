@@ -42,7 +42,22 @@ export function EChart({ option, ariaLabel, className = 'h-80', style, onSelect 
     const observer = new ResizeObserver(() => instance.resize())
     observer.observe(element)
 
+    // A canvas keeps the pixel size it was drawn at, so it has to be redrawn for the width of the printed page
+    // (and again afterwards). Without animation, or the print could capture a half-drawn chart.
+    const refit = () => instance.resize({ animation: { duration: 0 } })
+    const refitAfterLayout = () => {
+      refit()
+      setTimeout(refit, 120)
+    }
+    const printMedia = window.matchMedia('print')
+    printMedia.addEventListener('change', refitAfterLayout)
+    window.addEventListener('beforeprint', refitAfterLayout)
+    window.addEventListener('afterprint', refitAfterLayout)
+
     return () => {
+      printMedia.removeEventListener('change', refitAfterLayout)
+      window.removeEventListener('beforeprint', refitAfterLayout)
+      window.removeEventListener('afterprint', refitAfterLayout)
       observer.disconnect()
       instance.dispose()
       chart.current = null
