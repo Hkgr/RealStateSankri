@@ -3,16 +3,22 @@ import { Link, useParams } from 'react-router-dom'
 import { DonutChart, HBarChart, type ChartItem } from '../../components/charts/BasicCharts'
 import { TimelineChart, type TimelineEvent } from '../../components/charts/TimelineChart'
 import { Card } from '../../components/ui/Card'
+import { SearchInput } from '../../components/ui/SearchInput'
+import { SelectField } from '../../components/ui/SelectField'
 import { ErrorState } from '../../components/ui/StateViews'
+import { NoMatchRow, TableToolbar, ToolbarItem } from '../../components/ui/TableToolbar'
 import { SiteHeader } from '../../layout/SiteHeader'
+import { matchesSearch } from '../../lib/search'
 import { formatDate, formatDecimal, formatNumber, formatPercent, formatUsd, share } from '../../lib/format'
 import { ACQUISITION_LABELS, CATEGORY_COLORS, CHANNEL_LABELS, LAND_STATUS_LABELS, TARGET_LABELS, TIMING_LABELS } from '../../lib/labels'
 import type { ParcelDetail } from '../../services/types'
-import { CategoryPill } from '../dashboard/components/AnnotationsPanel'
+import { CategoryPill } from '../dashboard/components/AnnotationsTable'
 import { GroupPill } from '../dashboard/components/ParcelsPanel'
 import { useParcel } from '../dashboard/queries'
 
 const TOTAL_SHARES = 2400
+// A parcel's annotation list shorter than this is read at a glance; a longer one gets filters.
+const SEARCH_FROM = 8
 const CRITICAL = ['arbitration', 'security', 'state']
 const OWNER_COLORS = ['#4f46e5', '#0284c7', '#9333ea', '#d97706', '#be123c', '#0f766e', '#65a30d', '#c2410c']
 const dash = '—'
@@ -91,6 +97,10 @@ export function ParcelPage() {
 function ParcelDashboard({ detail }: { detail: ParcelDetail }) {
   const { parcel: p, owners, purchases, annotations, region, operation } = detail
   const [category, setCategory] = useState('')
+  const [search, setSearch] = useState('')
+  const [timing, setTiming] = useState('')
+  // Bumped to clear the search box, which keeps its own text while typing.
+  const [resetCount, setResetCount] = useState(0)
 
   const criticalCount = annotations.filter((a) => CRITICAL.includes(a.category)).length
   const ownedRatio = share(p.minute_area, p.total_area)
@@ -162,7 +172,19 @@ function ParcelDashboard({ detail }: { detail: ParcelDetail }) {
     return list
   }, [purchases, annotations, p.judgment_date, p.transfer_date, p.asali_registered_on])
 
-  const shown = category ? annotations.filter((a) => a.category === category) : annotations
+  const shown = annotations.filter(
+    (a) =>
+      (category === '' || a.category === category) &&
+      (timing === '' || (timing === 'none' ? a.timing == null : a.timing === timing)) &&
+      matchesSearch(`${a.placed_by ?? ''} ${a.placed_on ?? ''} ${a.ref_no ?? ''} ${a.category_name}`, search),
+  )
+  const filtersActive = category !== '' || timing !== '' || search !== ''
+  const clearFilters = () => {
+    setCategory('')
+    setTiming('')
+    setSearch('')
+    setResetCount((count) => count + 1)
+  }
 
   return (
     <>
@@ -293,13 +315,41 @@ function ParcelDashboard({ detail }: { detail: ParcelDetail }) {
         title="سجل الإشارات"
         hint={annotations.length ? `${formatNumber(shown.length)} من ${formatNumber(annotations.length)} إشارة بالترتيب الوارد في الملف` : undefined}
         actions={
-          category ? (
+          // Short lists have no toolbar, so the type chosen by clicking the donut needs its own way out.
+          category && annotations.length <= SEARCH_FROM ? (
             <button type="button" onClick={() => setCategory('')} className="min-h-8 cursor-pointer rounded-full bg-brand-soft px-3 text-sm font-semibold text-brand-ink hover:bg-brand hover:text-white">
               إزالة تصفية النوع ✕
             </button>
           ) : undefined
         }
       >
+        {annotations.length > SEARCH_FROM && (
+          <TableToolbar label="فلاتر سجل إشارات العقار" matching={shown.length} total={annotations.length} active={filtersActive} onReset={clearFilters}>
+            <ToolbarItem wide>
+              <SearchInput key={resetCount} label="بحث في السجل" placeholder="واضع الإشارة، على من وُضعت، رقم الإشارة" value={search} onChange={setSearch} delay={150} />
+            </ToolbarItem>
+            <ToolbarItem>
+              <SelectField
+                variant="bar"
+                label="نوع الإشارة"
+                allLabel="كل الأنواع"
+                value={category}
+                onChange={setCategory}
+                options={categoryItems.map((item) => ({ value: item.key, label: item.label }))}
+              />
+            </ToolbarItem>
+            <ToolbarItem>
+              <SelectField
+                variant="bar"
+                label="التوقيت"
+                allLabel="الكل"
+                value={timing}
+                onChange={setTiming}
+                options={[...Object.entries(TIMING_LABELS).filter(([code]) => code !== 'unknown').map(([value, label]) => ({ value, label })), { value: 'none', label: 'غير محدد' }]}
+              />
+            </ToolbarItem>
+          </TableToolbar>
+        )}
         {annotations.length === 0 ? (
           <p className="py-8 text-center text-sm text-ink-muted">لا توجد إشارات مسجّلة على هذا العقار.</p>
         ) : (
@@ -315,6 +365,7 @@ function ParcelDashboard({ detail }: { detail: ParcelDetail }) {
                 </tr>
               </thead>
               <tbody>
+                {shown.length === 0 && <NoMatchRow columns={8} />}
                 {shown.map((a) => (
                   <tr key={a.seq} className="border-t border-line align-top transition-colors hover:bg-brand-wash">
                     <td className="px-3 py-2 text-ink-soft">

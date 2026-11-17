@@ -2,13 +2,17 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { DonutChart, HBarChart, HStackedChart, StackedChart, type ChartItem } from '../../../components/charts/BasicCharts'
 import { Card } from '../../../components/ui/Card'
+import { SearchInput } from '../../../components/ui/SearchInput'
+import { SelectField } from '../../../components/ui/SelectField'
+import { NoMatchRow, TableToolbar, ToolbarItem } from '../../../components/ui/TableToolbar'
 import { ErrorState, NoDataState } from '../../../components/ui/StateViews'
 import { formatDecimal, formatNumber, formatPercent, formatUsd, share } from '../../../lib/format'
 import { CATEGORY_COLORS } from '../../../lib/labels'
+import { matchesSearch } from '../../../lib/search'
 import type { Analytics, Figures } from '../../../services/types'
 import { useAnalytics } from '../queries'
 import type { Filters } from '../useDashboardFilters'
-import { CategoryPill } from './AnnotationsPanel'
+import { CategoryPill } from './AnnotationsTable'
 
 const MONTH_DAYS = 30.44
 const months = (days: number | null) => (days == null ? null : days / MONTH_DAYS)
@@ -41,6 +45,76 @@ const EXPOSURE_METRICS: { value: ExposureMetric; label: string; unit: string }[]
   { value: 'total_area', label: 'المساحة الإجمالية', unit: 'م²' },
   { value: 'value_usd', label: 'القيمة $', unit: 'دولار' },
 ]
+
+/** The widest cases, searchable by placer, region or number and filterable by kind. */
+function TopCasesCard({ cases, categories }: { cases: Analytics['cases']['top']; categories: Analytics['cases']['by_category'] }) {
+  const [search, setSearch] = useState('')
+  const [category, setCategory] = useState('')
+  // Bumped to clear the search box, which keeps its own text while typing.
+  const [resetCount, setResetCount] = useState(0)
+
+  const matching = useMemo(
+    () => cases.filter((c) => (category === '' || c.category === category) && matchesSearch(`${c.ref_no} ${c.region} ${c.placed_by ?? ''} ${c.category_name}`, search)),
+    [cases, search, category],
+  )
+  const active = search !== '' || category !== ''
+
+  return (
+    <Card className="lg:col-span-3" title="أوسع القضايا انتشارًا" hint={`أول ${formatNumber(cases.length)} قضية بعدد العقارات التي تطالها`}>
+      <TableToolbar
+        label="فلاتر جدول القضايا"
+        matching={matching.length}
+        total={cases.length}
+        active={active}
+        onReset={() => {
+          setSearch('')
+          setCategory('')
+          setResetCount((count) => count + 1)
+        }}
+      >
+        <ToolbarItem wide>
+          <SearchInput key={resetCount} label="بحث في القضايا" placeholder="واضع الإشارة، منطقة، رقم الإشارة" value={search} onChange={setSearch} delay={150} />
+        </ToolbarItem>
+        <ToolbarItem>
+          <SelectField variant="bar" label="النوع" allLabel="كل الأنواع" value={category} onChange={setCategory} options={categories.map((c) => ({ value: c.code, label: c.name }))} />
+        </ToolbarItem>
+      </TableToolbar>
+      <div className="max-h-[30rem] overflow-auto rounded-xl border border-line">
+        <table className="w-full min-w-[44rem] border-collapse text-sm">
+          <thead className="sticky top-0 z-10">
+            <tr className="bg-paper-deep text-ink-soft">
+              <th className="px-3 py-2 text-start font-bold">رقم الإشارة</th>
+              <th className="px-3 py-2 text-start font-bold">المنطقة</th>
+              <th className="px-3 py-2 text-start font-bold">واضع الإشارة</th>
+              <th className="px-3 py-2 text-start font-bold">النوع</th>
+              <th className="px-3 py-2 text-start font-bold">السنة</th>
+              <th className="px-3 py-2 text-start font-bold">عقارات</th>
+              <th className="px-3 py-2 text-start font-bold">المساحة (م²)</th>
+              <th className="px-3 py-2 text-start font-bold">القيمة $</th>
+            </tr>
+          </thead>
+          <tbody>
+            {matching.length === 0 && <NoMatchRow columns={8} />}
+            {matching.map((c) => (
+              <tr key={`${c.region}-${c.ref_no}-${c.placed_by}`} className="border-t border-line">
+                <td className="num px-3 py-2 font-bold text-ink">{c.ref_no}</td>
+                <td className="px-3 py-2 font-semibold">{c.region}</td>
+                <td className="px-3 py-2 text-ink">{c.placed_by ?? '—'}</td>
+                <td className="px-3 py-2">
+                  <CategoryPill code={c.category} name={c.category_name} />
+                </td>
+                <td className="num px-3 py-2 text-ink-soft">{c.year ?? '—'}</td>
+                <td className="num px-3 py-2 font-bold">{formatNumber(c.parcels)}</td>
+                <td className="num px-3 py-2">{formatNumber(c.total_area)}</td>
+                <td className="num px-3 py-2">{formatUsd(c.value_usd)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  )
+}
 
 function CasesSection({ cases }: { cases: Analytics['cases'] }) {
   return (
@@ -81,40 +155,7 @@ function CasesSection({ cases }: { cases: Analytics['cases'] }) {
         </div>
       </Card>
 
-      <Card className="lg:col-span-3" title="أوسع القضايا انتشارًا" hint="القضايا التي تطال أكبر عدد من العقارات">
-        <div className="overflow-x-auto rounded-xl border border-line">
-          <table className="w-full min-w-[44rem] border-collapse text-sm">
-            <thead>
-              <tr className="bg-paper-deep text-ink-soft">
-                <th className="px-3 py-2 text-start font-bold">رقم الإشارة</th>
-                <th className="px-3 py-2 text-start font-bold">المنطقة</th>
-                <th className="px-3 py-2 text-start font-bold">واضع الإشارة</th>
-                <th className="px-3 py-2 text-start font-bold">النوع</th>
-                <th className="px-3 py-2 text-start font-bold">السنة</th>
-                <th className="px-3 py-2 text-start font-bold">عقارات</th>
-                <th className="px-3 py-2 text-start font-bold">المساحة (م²)</th>
-                <th className="px-3 py-2 text-start font-bold">القيمة $</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cases.top.map((c) => (
-                <tr key={`${c.region}-${c.ref_no}-${c.placed_by}`} className="border-t border-line">
-                  <td className="num px-3 py-2 font-bold text-ink">{c.ref_no}</td>
-                  <td className="px-3 py-2 font-semibold">{c.region}</td>
-                  <td className="px-3 py-2 text-ink">{c.placed_by ?? '—'}</td>
-                  <td className="px-3 py-2">
-                    <CategoryPill code={c.category} name={c.category_name} />
-                  </td>
-                  <td className="num px-3 py-2 text-ink-soft">{c.year ?? '—'}</td>
-                  <td className="num px-3 py-2 font-bold">{formatNumber(c.parcels)}</td>
-                  <td className="num px-3 py-2">{formatNumber(c.total_area)}</td>
-                  <td className="num px-3 py-2">{formatUsd(c.value_usd)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      <TopCasesCard cases={cases.top} categories={cases.by_category} />
     </Section>
   )
 }

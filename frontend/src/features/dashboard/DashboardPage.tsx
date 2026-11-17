@@ -62,7 +62,7 @@ export function DashboardPage() {
           ) : (
             <div className={`transition-opacity ${overview.isFetching ? 'opacity-70' : ''}`}>
               {tab === 'overview' && <OverviewPanel data={data} filters={filters} toggle={toggle} />}
-              {tab === 'parcels' && <ParcelsPanel filters={filters} onReset={reset} />}
+              {tab === 'parcels' && <ParcelsPanel filters={filters} purchaseYears={[...new Set(data.purchases_by_year.map((r) => r.year))].sort((a, b) => a - b)} onReset={reset} />}
               {tab === 'annotations' && <AnnotationsPanel data={data} filters={filters} toggle={toggle} onReset={reset} />}
               {tab === 'acquisition' && <AcquisitionPanel data={data} filters={filters} toggle={toggle} />}
               {tab === 'analytics' && <AdvancedPanel filters={filters} figures={data.figures} onReset={reset} />}
