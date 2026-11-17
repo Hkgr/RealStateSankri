@@ -2,7 +2,11 @@ import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { StackedChart } from '../../../components/charts/BasicCharts'
 import { Card } from '../../../components/ui/Card'
+import { SearchInput } from '../../../components/ui/SearchInput'
+import { SelectField } from '../../../components/ui/SelectField'
+import { NoMatchRow, TableToolbar, ToolbarItem } from '../../../components/ui/TableToolbar'
 import { formatNumber, formatUsd } from '../../../lib/format'
+import { matchesSearch } from '../../../lib/search'
 import type { OperationRow, OperationsReport as Report } from '../../../services/types'
 
 type SortKey = 'ref' | 'minutes' | 'value_usd' | 'k16_area' | 'price' | 'purchase_year'
@@ -38,15 +42,28 @@ const compare = (a: OperationRow, b: OperationRow, key: SortKey) => {
   return x - y
 }
 
+const sumOf = (items: OperationRow[], pick: (item: OperationRow) => number | null) => items.reduce((total, item) => total + (pick(item) ?? 0), 0)
+
 /** Purchase operations of Kashf 16: how many, how many minutes in each, and what each is worth. */
 export function OperationsReport({ report, charts = true }: { report: Report; charts?: boolean }) {
   const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'value_usd', dir: 'desc' })
+  const [search, setSearch] = useState('')
+  const [year, setYear] = useState('')
+  const [size, setSize] = useState('')
+  // Bumped to clear the search box, which keeps its own text while typing.
+  const [resetCount, setResetCount] = useState(0)
   const { summary, loose, by_year: byYear } = report
 
   const items = useMemo(() => {
-    const sorted = [...report.items].sort((a, b) => compare(a, b, sort.key))
+    const matching = report.items.filter(
+      (item) =>
+        matchesSearch(`${item.ref} ${item.regions} ${item.owners}`, search) &&
+        (year === '' || (year === 'none' ? item.purchase_year == null : String(item.purchase_year) === year)) &&
+        (size === '' || (size === 'single' ? item.minutes === 1 : item.minutes > 1)),
+    )
+    const sorted = [...matching].sort((a, b) => compare(a, b, sort.key))
     return sort.dir === 'desc' ? sorted.reverse() : sorted
-  }, [report.items, sort])
+  }, [report.items, sort, search, year, size])
 
   const years = useMemo(() => {
     const categories = byYear.map((row) => ({ key: String(row.year ?? 'none'), label: row.year == null ? 'بلا تاريخ' : String(row.year) }))
@@ -58,6 +75,14 @@ export function OperationsReport({ report, charts = true }: { report: Report; ch
   }, [byYear])
 
   const toggleSort = (key: SortKey) => setSort((current) => ({ key, dir: current.key === key && current.dir === 'desc' ? 'asc' : 'desc' }))
+  const filtersActive = search !== '' || year !== '' || size !== ''
+  const clearFilters = () => {
+    setSearch('')
+    setYear('')
+    setSize('')
+    setResetCount((count) => count + 1)
+  }
+  const yearOptions = [...byYear.filter((row) => row.year != null).map((row) => ({ value: String(row.year), label: String(row.year) })), ...(byYear.some((row) => row.year == null) ? [{ value: 'none', label: 'بلا تاريخ' }] : [])]
 
   return (
     <div className="grid gap-4">
@@ -79,52 +104,79 @@ export function OperationsReport({ report, charts = true }: { report: Report; ch
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-xl border border-line">
-        <table className="w-full min-w-[52rem] border-collapse text-sm">
-          <thead>
-            <tr className="bg-paper-deep text-ink-soft">
-              {COLUMNS.map((column) => {
-                const active = column.key !== null && sort.key === column.key
-                return (
-                  <th key={column.label} scope="col" aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined} className="px-3 py-2.5 text-start font-bold">
-                    {column.key === null ? (
-                      column.label
-                    ) : (
-                      <button type="button" onClick={() => toggleSort(column.key as SortKey)} className="inline-flex cursor-pointer items-center gap-1 whitespace-nowrap hover:text-ink">
-                        {column.label}
-                        {active ? sort.dir === 'asc' ? <ArrowUp className="size-3.5" aria-hidden="true" /> : <ArrowDown className="size-3.5" aria-hidden="true" /> : <ArrowUpDown className="size-3.5 opacity-40" aria-hidden="true" />}
-                      </button>
-                    )}
-                  </th>
-                )
-              })}
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.ref} className="border-t border-line transition-colors hover:bg-brand-wash">
-                <td className="num px-3 py-2 font-bold text-ink">{item.ref}</td>
-                <td className="px-3 py-2 text-ink-soft">{item.regions}</td>
-                <td className="num px-3 py-2 font-bold">{formatNumber(item.minutes)}</td>
-                <td className="num px-3 py-2">{item.valued_minutes > 0 ? formatUsd(item.value_usd) : <span className="rounded bg-danger-soft px-1.5 py-0.5 text-xs font-bold text-danger">بلا قيمة</span>}</td>
-                <td className="num px-3 py-2">{formatNumber(item.k16_area)}</td>
-                <td className="num px-3 py-2">{formatUsd(item.price)}</td>
-                <td className="num px-3 py-2 text-ink-soft">{item.purchase_year ?? '—'}</td>
-                <td className="px-3 py-2 text-xs text-ink-muted">{item.owners}</td>
+      <div>
+        <TableToolbar label="فلاتر جدول عمليات الشراء" matching={items.length} total={report.items.length} active={filtersActive} onReset={clearFilters}>
+          <ToolbarItem wide>
+            <SearchInput key={resetCount} label="بحث في الجدول" placeholder="رقم الكشف، منطقة، مجموعة ملكية" value={search} onChange={setSearch} delay={150} />
+          </ToolbarItem>
+          <ToolbarItem>
+            <SelectField variant="bar" label="سنة أول عقد" allLabel="كل السنوات" value={year} onChange={setYear} options={yearOptions} />
+          </ToolbarItem>
+          <ToolbarItem>
+            <SelectField
+              variant="bar"
+              label="حجم العملية"
+              allLabel="الكل"
+              value={size}
+              onChange={setSize}
+              options={[
+                { value: 'single', label: 'محضر واحد' },
+                { value: 'multi', label: 'أكثر من محضر' },
+              ]}
+            />
+          </ToolbarItem>
+        </TableToolbar>
+
+        <div className="overflow-x-auto rounded-xl border border-line">
+          <table className="w-full min-w-[52rem] border-collapse text-sm">
+            <thead>
+              <tr className="bg-paper-deep text-ink-soft">
+                {COLUMNS.map((column) => {
+                  const active = column.key !== null && sort.key === column.key
+                  return (
+                    <th key={column.label} scope="col" aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined} className="px-3 py-2.5 text-start font-bold">
+                      {column.key === null ? (
+                        column.label
+                      ) : (
+                        <button type="button" onClick={() => toggleSort(column.key as SortKey)} className="inline-flex cursor-pointer items-center gap-1 whitespace-nowrap hover:text-ink">
+                          {column.label}
+                          {active ? sort.dir === 'asc' ? <ArrowUp className="size-3.5" aria-hidden="true" /> : <ArrowDown className="size-3.5" aria-hidden="true" /> : <ArrowUpDown className="size-3.5 opacity-40" aria-hidden="true" />}
+                        </button>
+                      )}
+                    </th>
+                  )
+                })}
               </tr>
-            ))}
-            <tr className="border-t-2 border-line-strong bg-paper font-extrabold text-ink">
-              <td className="px-3 py-2.5">الإجمالي</td>
-              <td className="px-3 py-2.5" />
-              <td className="num px-3 py-2.5">{formatNumber(summary.minutes)}</td>
-              <td className="num px-3 py-2.5">{formatUsd(summary.value_usd)}</td>
-              <td className="num px-3 py-2.5">{formatNumber(summary.k16_area)}</td>
-              <td className="px-3 py-2.5" />
-              <td className="px-3 py-2.5" />
-              <td className="px-3 py-2.5" />
-            </tr>
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {items.length === 0 && <NoMatchRow columns={COLUMNS.length} />}
+              {items.map((item) => (
+                <tr key={item.ref} className="border-t border-line transition-colors hover:bg-brand-wash">
+                  <td className="num px-3 py-2 font-bold text-ink">{item.ref}</td>
+                  <td className="px-3 py-2 text-ink-soft">{item.regions}</td>
+                  <td className="num px-3 py-2 font-bold">{formatNumber(item.minutes)}</td>
+                  <td className="num px-3 py-2">{item.valued_minutes > 0 ? formatUsd(item.value_usd) : <span className="rounded bg-danger-soft px-1.5 py-0.5 text-xs font-bold text-danger">بلا قيمة</span>}</td>
+                  <td className="num px-3 py-2">{formatNumber(item.k16_area)}</td>
+                  <td className="num px-3 py-2">{formatUsd(item.price)}</td>
+                  <td className="num px-3 py-2 text-ink-soft">{item.purchase_year ?? '—'}</td>
+                  <td className="px-3 py-2 text-xs text-ink-muted">{item.owners}</td>
+                </tr>
+              ))}
+              {items.length > 0 && (
+                <tr className="border-t-2 border-line-strong bg-paper font-extrabold text-ink">
+                  <td className="px-3 py-2.5">{filtersActive ? 'إجمالي المعروض' : 'الإجمالي'}</td>
+                  <td className="px-3 py-2.5" />
+                  <td className="num px-3 py-2.5">{formatNumber(sumOf(items, (i) => i.minutes))}</td>
+                  <td className="num px-3 py-2.5">{formatUsd(sumOf(items, (i) => i.value_usd))}</td>
+                  <td className="num px-3 py-2.5">{formatNumber(sumOf(items, (i) => i.k16_area))}</td>
+                  <td className="px-3 py-2.5" />
+                  <td className="px-3 py-2.5" />
+                  <td className="px-3 py-2.5" />
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {loose.minutes > 0 && (

@@ -21,18 +21,34 @@ export interface TableState {
   page: number
 }
 
-export function useParcels(filters: Filters, table: TableState) {
+/** Filters that belong to the parcels table itself (its search box and selects). */
+export interface ParcelTableFilters {
+  tq: string
+  ann: string
+  method: string
+  buy_year: string
+}
+
+/** Filters that belong to the annotations log itself. */
+export interface AnnotationTableFilters {
+  tq: string
+  timing: string
+  target: string
+  source: string
+}
+
+export function useParcels(filters: Filters, table: TableState, own: ParcelTableFilters) {
   return useQuery({
-    queryKey: ['parcels', filters, table],
-    queryFn: ({ signal }) => apiGet<Page<ParcelRow>>('/parcels', { ...filters, ...table, per: 20 }, signal),
+    queryKey: ['parcels', filters, table, own],
+    queryFn: ({ signal }) => apiGet<Page<ParcelRow>>('/parcels', { ...filters, ...own, ...table, per: 20 }, signal),
     placeholderData: keepPreviousData,
   })
 }
 
-export function useAnnotations(filters: Filters, table: TableState) {
+export function useAnnotations(filters: Filters, table: TableState, own: AnnotationTableFilters) {
   return useQuery({
-    queryKey: ['annotations', filters, table],
-    queryFn: ({ signal }) => apiGet<Page<AnnotationRow>>('/annotations', { ...filters, ...table, per: 20 }, signal),
+    queryKey: ['annotations', filters, table, own],
+    queryFn: ({ signal }) => apiGet<Page<AnnotationRow>>('/annotations', { ...filters, ...own, ...table, per: 20 }, signal),
     placeholderData: keepPreviousData,
   })
 }

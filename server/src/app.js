@@ -6,6 +6,7 @@ import { buildAnalytics } from './analytics.js'
 import { annotationClause, parcelClause, readFilters } from './filters.js'
 import { buildOperations, operationOf } from './operations.js'
 import { buildQuality, missingRecords } from './quality.js'
+import { annotationTableClause, parcelTableClause } from './tableFilters.js'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const DIST = path.resolve(here, '../../frontend/dist')
@@ -220,14 +221,16 @@ export function createApp(pool) {
 
   router.get('/parcels', async (req, res) => {
     const f = readFilters(req.query)
-    const clause = parcelClause(f)
+    const dashboard = parcelClause(f)
+    const own = parcelTableClause(req.query)
+    const clause = { sql: `${dashboard.sql} AND ${own.sql}`, params: [...dashboard.params, ...own.params] }
     const sort = PARCEL_SORTS[req.query.sort] ?? PARCEL_SORTS.minute
     const dir = req.query.dir === 'desc' ? 'DESC' : 'ASC'
     const per = toInt(req.query.per, 25, 5, 100)
     const page = toInt(req.query.page, 1, 1, 10000)
 
     const [total, items] = await Promise.all([
-      one(`SELECT COUNT(*) n FROM parcels p WHERE ${clause.sql}`, clause.params),
+      one(`SELECT COUNT(*) n FROM parcels p JOIN regions r ON r.id = p.region_id WHERE ${clause.sql}`, clause.params),
       rows(
         `SELECT p.id, p.minute_no, p.is_damaged, p.kashf16_ref, p.land_status, p.minute_area, p.total_area, p.total_shares,
                 p.k16_value_usd, p.sankari_value_usd, p.asali_value_usd, p.first_purchase_date, p.acquisition_method,
@@ -280,7 +283,9 @@ export function createApp(pool) {
 
   router.get('/annotations', async (req, res) => {
     const f = readFilters(req.query)
-    const clause = annotationClause(f)
+    const dashboard = annotationClause(f)
+    const own = annotationTableClause(req.query)
+    const clause = { sql: `${dashboard.sql} AND ${own.sql}`, params: [...dashboard.params, ...own.params] }
     const sort = ANNOTATION_SORTS[req.query.sort] ?? ANNOTATION_SORTS.date
     const dir = req.query.dir === 'asc' ? 'ASC' : 'DESC'
     const per = toInt(req.query.per, 25, 5, 100)

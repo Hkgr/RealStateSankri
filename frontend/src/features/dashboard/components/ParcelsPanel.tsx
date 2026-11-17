@@ -3,10 +3,13 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Card } from '../../../components/ui/Card'
 import { Pagination } from '../../../components/ui/Pagination'
+import { SearchInput } from '../../../components/ui/SearchInput'
+import { SelectField } from '../../../components/ui/SelectField'
 import { ErrorState, NoDataState } from '../../../components/ui/StateViews'
+import { NoMatchRow, TableToolbar, ToolbarItem } from '../../../components/ui/TableToolbar'
 import { formatDate, formatNumber, formatUsd } from '../../../lib/format'
 import { ACQUISITION_LABELS, GROUP_COLORS, LAND_STATUS_LABELS } from '../../../lib/labels'
-import { useParcels, type TableState } from '../queries'
+import { useParcels, type ParcelTableFilters, type TableState } from '../queries'
 import type { Filters } from '../useDashboardFilters'
 
 interface Column {
@@ -25,6 +28,8 @@ const COLUMNS: Column[] = [
   { sort: 'purchase', label: 'أول شراء' },
 ]
 
+const NO_FILTERS: ParcelTableFilters = { tq: '', ann: '', method: '', buy_year: '' }
+
 export function GroupPill({ code, name }: { code: string; name: string }) {
   const color = GROUP_COLORS[code] ?? '#94a3b8'
   return (
@@ -35,20 +40,72 @@ export function GroupPill({ code, name }: { code: string; name: string }) {
   )
 }
 
-export function ParcelsPanel({ filters, onReset }: { filters: Filters; onReset: () => void }) {
+export function ParcelsPanel({ filters, purchaseYears, onReset }: { filters: Filters; purchaseYears: number[]; onReset: () => void }) {
   const [table, setTable] = useState<TableState>({ sort: 'minute', dir: 'asc', page: 1 })
-  const query = useParcels(filters, table)
+  const [own, setOwn] = useState<ParcelTableFilters>(NO_FILTERS)
+  // Bumped to clear the search box, which keeps its own text while typing.
+  const [resetCount, setResetCount] = useState(0)
+  const query = useParcels(filters, table, own)
 
   const sortBy = (sort: string) =>
     setTable((current) => ({ sort, dir: current.sort === sort && current.dir === 'asc' ? 'desc' : 'asc', page: 1 }))
+  const setFilter = (key: keyof ParcelTableFilters, value: string) => {
+    setOwn((current) => ({ ...current, [key]: value }))
+    setTable((current) => ({ ...current, page: 1 }))
+  }
+  const clearFilters = () => {
+    setOwn(NO_FILTERS)
+    setResetCount((count) => count + 1)
+    setTable((current) => ({ ...current, page: 1 }))
+  }
+  const ownActive = Object.values(own).some((value) => value !== '')
 
   return (
     <Card title="قائمة العقارات" hint="اضغط على رأس العمود للفرز، وعلى العقار لعرض تفاصيله وإشاراته. القيمة تخص عملية الشراء كلها لا المحضر وحده">
+      <TableToolbar label="فلاتر جدول العقارات" matching={query.data?.total ?? 0} active={ownActive} onReset={clearFilters}>
+        <ToolbarItem wide>
+          <SearchInput key={resetCount} label="بحث في الجدول" placeholder="محضر، منطقة، رقم كشف 16، ملاحظة" value={own.tq} onChange={(value) => setFilter('tq', value)} />
+        </ToolbarItem>
+        <ToolbarItem>
+          <SelectField
+            variant="bar"
+            label="الإشارات"
+            allLabel="الكل"
+            value={own.ann}
+            onChange={(value) => setFilter('ann', value)}
+            options={[
+              { value: 'with', label: 'لها إشارات' },
+              { value: 'without', label: 'بلا إشارات' },
+            ]}
+          />
+        </ToolbarItem>
+        <ToolbarItem>
+          <SelectField
+            variant="bar"
+            label="طريقة انتقال الملكية"
+            allLabel="الكل"
+            value={own.method}
+            onChange={(value) => setFilter('method', value)}
+            options={['transfer', 'judgment', 'judgment_then_transfer', 'none'].map((code) => ({ value: code, label: ACQUISITION_LABELS[code] }))}
+          />
+        </ToolbarItem>
+        <ToolbarItem>
+          <SelectField
+            variant="bar"
+            label="سنة أول شراء"
+            allLabel="كل السنوات"
+            value={own.buy_year}
+            onChange={(value) => setFilter('buy_year', value)}
+            options={purchaseYears.map((year) => ({ value: String(year), label: String(year) }))}
+          />
+        </ToolbarItem>
+      </TableToolbar>
+
       {query.isError ? (
         <ErrorState message={query.error.message} onRetry={() => void query.refetch()} compact />
       ) : !query.data ? (
         <div className="skeleton h-96" aria-busy="true" />
-      ) : query.data.total === 0 ? (
+      ) : query.data.total === 0 && !ownActive ? (
         <NoDataState onReset={onReset} compact />
       ) : (
         <>
@@ -70,6 +127,7 @@ export function ParcelsPanel({ filters, onReset }: { filters: Filters; onReset: 
                 </tr>
               </thead>
               <tbody>
+                {query.data.items.length === 0 && <NoMatchRow columns={COLUMNS.length} />}
                 {query.data.items.map((parcel) => (
                   <tr key={parcel.id} className="border-t border-line transition-colors hover:bg-brand-wash">
                     <td className="px-3 py-2 font-semibold text-ink">{parcel.region}</td>

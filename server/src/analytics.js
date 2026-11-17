@@ -128,7 +128,7 @@ export async function buildAnalytics(rows, filters) {
   const caseCount = cases.length + nullRefRows
   const topCases = [...cases]
     .sort((a, b) => b.parcels - a.parcels || b.total_area - a.total_area)
-    .slice(0, 12)
+    .slice(0, 100)
     .map((c) => ({
       ref_no: c.ref_no,
       region: c.region,

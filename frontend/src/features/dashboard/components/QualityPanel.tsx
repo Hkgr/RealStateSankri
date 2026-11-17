@@ -1,24 +1,44 @@
 import { ChevronDown } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Card } from '../../../components/ui/Card'
+import { SearchInput } from '../../../components/ui/SearchInput'
 import { ErrorState } from '../../../components/ui/StateViews'
+import { NoMatchRow, TableToolbar, ToolbarItem } from '../../../components/ui/TableToolbar'
 import { formatNumber, formatPercent, share } from '../../../lib/format'
-import type { QualityMetric } from '../../../services/types'
+import { matchesSearch } from '../../../lib/search'
+import type { MissingRecord, QualityMetric } from '../../../services/types'
 import { useMissing, useOperations, useQuality } from '../queries'
 import type { Filters } from '../useDashboardFilters'
 import { OperationsReport } from './OperationsReport'
 
+// Lists shorter than this are read at a glance; longer ones get a search box.
+const SEARCH_FROM = 10
+
 /** The records that lack the field, with their Excel row, so the count can be checked against the sheet. */
-function MissingList({ filters, metric }: { filters: Filters; metric: string }) {
-  const query = useMissing(filters, metric, true)
-  if (query.isError) return <ErrorState message={query.error.message} onRetry={() => void query.refetch()} compact />
-  if (!query.data) return <div className="skeleton h-24" aria-busy="true" />
-  const { items, total, kind } = query.data
-  const annotation = kind === 'annotation'
+function MissingTable({ items, total, annotation }: { items: MissingRecord[]; total: number; annotation: boolean }) {
+  const [search, setSearch] = useState('')
+  // Bumped to clear the search box, which keeps its own text while typing.
+  const [resetCount, setResetCount] = useState(0)
+  const matching = useMemo(
+    () => items.filter((item) => matchesSearch(`${item.source_row} ${item.region} ${item.minute_no} ${item.group_name ?? ''} ${item.reason ?? ''} ${item.placed_by ?? ''} ${item.ref_no ?? ''}`, search)),
+    [items, search],
+  )
 
   return (
     <div className="mt-3">
+      {items.length > SEARCH_FROM && (
+        <TableToolbar label="فلاتر قائمة الناقص" matching={matching.length} total={items.length} active={search !== ''}
+          onReset={() => {
+            setSearch('')
+            setResetCount((count) => count + 1)
+          }}
+        >
+          <ToolbarItem wide>
+            <SearchInput key={resetCount} label="بحث في القائمة" placeholder="صف، منطقة، محضر، سبب" value={search} onChange={setSearch} delay={150} />
+          </ToolbarItem>
+        </TableToolbar>
+      )}
       <div className="overflow-x-auto rounded-xl border border-line">
         <table className="w-full min-w-[32rem] border-collapse text-sm">
           <thead>
@@ -30,7 +50,8 @@ function MissingList({ filters, metric }: { filters: Filters; metric: string }) 
             </tr>
           </thead>
           <tbody>
-            {items.map((item, index) => (
+            {matching.length === 0 && <NoMatchRow columns={4} />}
+            {matching.map((item, index) => (
               <tr key={`${item.source_row}-${index}`} className="border-t border-line">
                 <td className="num px-3 py-2 font-bold text-ink">
                   {item.source_row}
@@ -42,9 +63,7 @@ function MissingList({ filters, metric }: { filters: Filters; metric: string }) 
                     <span className="num">{item.minute_no}</span>
                   </Link>
                 </td>
-                <td className="px-3 py-2 text-ink-soft">
-                  {annotation ? (item.placed_by ?? '—') : item.reason ? <span className="text-ink">{item.reason}</span> : item.group_name}
-                </td>
+                <td className="px-3 py-2 text-ink-soft">{annotation ? (item.placed_by ?? '—') : item.reason ? <span className="text-ink">{item.reason}</span> : item.group_name}</td>
               </tr>
             ))}
           </tbody>
@@ -53,6 +72,13 @@ function MissingList({ filters, metric }: { filters: Filters; metric: string }) 
       {total > items.length && <p className="mt-2 text-xs text-ink-muted">يُعرض أول {formatNumber(items.length)} من {formatNumber(total)}.</p>}
     </div>
   )
+}
+
+function MissingList({ filters, metric }: { filters: Filters; metric: string }) {
+  const query = useMissing(filters, metric, true)
+  if (query.isError) return <ErrorState message={query.error.message} onRetry={() => void query.refetch()} compact />
+  if (!query.data) return <div className="skeleton h-24" aria-busy="true" />
+  return <MissingTable items={query.data.items} total={query.data.total} annotation={query.data.kind === 'annotation'} />
 }
 
 function Coverage({ metric, filters, operationsOpen, onToggleOperations }: { metric: QualityMetric; filters: Filters; operationsOpen: boolean; onToggleOperations: () => void }) {

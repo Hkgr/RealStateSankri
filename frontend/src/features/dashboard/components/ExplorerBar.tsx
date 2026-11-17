@@ -1,7 +1,7 @@
-import { RotateCcw, Search, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { SelectField } from '../../../components/ui/SelectField'
+import { RotateCcw, X } from 'lucide-react'
 import { Button } from '../../../components/ui/Button'
+import { SearchInput } from '../../../components/ui/SearchInput'
+import { SelectField } from '../../../components/ui/SelectField'
 import { LAND_STATUS_LABELS } from '../../../lib/labels'
 import type { Meta } from '../../../services/types'
 import type { FilterKey, Filters } from '../useDashboardFilters'
@@ -12,35 +12,6 @@ interface ExplorerBarProps {
   activeCount: number
   onChange: (key: FilterKey, value: string) => void
   onReset: () => void
-}
-
-/** Search box that waits for a pause in typing before it filters. */
-function MinuteSearch({ value, onChange }: { value: string; onChange: (value: string) => void }) {
-  const [text, setText] = useState(value)
-  useEffect(() => {
-    if (text === value) return
-    const timer = setTimeout(() => onChange(text.trim()), 350)
-    return () => clearTimeout(timer)
-  }, [text, value, onChange])
-
-  return (
-    <div className="relative">
-      <label htmlFor="minute-search" className="mb-1 block text-xs font-bold text-ink-soft">
-        بحث برقم المحضر أو الكشف 16
-      </label>
-      <div className={`flex h-10 items-center rounded-xl border bg-white ${value ? 'border-brand/60 bg-brand-wash' : 'border-line-strong'}`}>
-        <Search className="mx-2.5 size-4 shrink-0 text-ink-muted" aria-hidden="true" />
-        <input
-          id="minute-search"
-          type="search"
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          placeholder="مثال: 1431 أو 29+63"
-          className="h-full min-w-0 flex-1 bg-transparent pe-3 text-sm font-semibold text-ink outline-none placeholder:font-normal placeholder:text-ink-muted"
-        />
-      </div>
-    </div>
-  )
 }
 
 export function ExplorerBar({ meta, filters, activeCount, onChange, onReset }: ExplorerBarProps) {
@@ -115,7 +86,7 @@ export function ExplorerBar({ meta, filters, activeCount, onChange, onReset }: E
             { value: '0', label: 'غير متضرر' },
           ]}
         />
-        <MinuteSearch key={filters.q} value={filters.q} onChange={(value) => onChange('q', value)} />
+        <SearchInput key={filters.q} label="بحث برقم المحضر أو الكشف 16" placeholder="مثال: 1431 أو 29+63" value={filters.q} onChange={(value) => onChange('q', value)} delay={350} />
       </div>
 
       {activeCount > 0 && (
