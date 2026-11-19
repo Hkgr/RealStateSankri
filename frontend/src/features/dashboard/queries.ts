@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { apiGet } from '../../services/api'
-import type { Analytics, AnnotationRow, Meta, MissingResult, OperationsReport, QualityReport, Overview, Page, ParcelDetail, ParcelRow } from '../../services/types'
+import type { Analytics, AnnotationRow, Meta, MissingResult, OperationsReport, ParcelDocuments, QualityReport, Overview, Page, ParcelDetail, ParcelRow } from '../../services/types'
 import type { Filters } from './useDashboardFilters'
 
 export function useMeta() {
@@ -90,4 +90,8 @@ export function useOperations(filters: Filters, enabled = true) {
     placeholderData: keepPreviousData,
     enabled,
   })
+}
+
+export function useParcelDocuments(id: string) {
+  return useQuery({ queryKey: ['parcel-documents', id], queryFn: ({ signal }) => apiGet<ParcelDocuments>(`/parcels/${id}/documents`, {}, signal) })
 }

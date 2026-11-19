@@ -8,7 +8,8 @@
     "db:import:dry": "node --env-file=.env src/import/run.js --dry-run",
     "start": "node --env-file=.env src/server.js",
     "dev": "node --env-file=.env --watch src/server.js",
-    "test": "node --test \"test/*.test.js\""
+    "test": "node --test \"test/*.test.js\"",
+    "docs:ingest": "node --env-file=.env src/documents/ingest.js"
   },
   "engines": {
     "node": ">=20"

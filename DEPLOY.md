@@ -78,6 +78,15 @@ DB_NAME=<اسم القاعدة>
 - فعّل **Password-Protected Directories** على جذر الموقع (`/`) بمستخدم وكلمة مرور، أو قيّد الوصول بعناوين IP. وإلا فكل من يعرف الرابط يرى أسماء الملاك والإشارات.
 - لا تضع ملف الإكسل أو الـ dump داخل `httpdocs`.
 
+## 6-ب) الوثائق (اختياري)
+
+1. على جهازك: `npm run docs:ingest -- --source "<مجلد المنطقة>"` (من `server`)، فتُنسخ الملفات الفريدة إلى `storage/documents/blobs`.
+2. ارفع المجلد `storage/documents` كله إلى السيرفر **خارج** `httpdocs` (SFTP أو rsync؛ ماير وحدها 0.26 GB)، مثل `/realestate-app/storage/documents`.
+3. أضف متغيّرات: `DOCS_DIR=/realestate-app/storage/documents` و`BASIC_AUTH_USER` و`BASIC_AUTH_PASSWORD` (بلا حماية الدخول لا تُعرض الوثائق أبدًا).
+4. صدّر dump جديدًا يتضمن جدولَي `documents` و`parcel_documents` واستورده كما في الخطوة 2، ثم **Restart App**.
+
+بعد أي تغيير في `schema.sql` صدّر الـ dump من جديد قبل الرفع، وإلا تنقص جداول على السيرفر (يبقى الموقع شغالًا وتظهر البطاقة «لم تُفهرس وثائق بعد»).
+
 ## 7) تحديث لاحق
 
 - **بيانات جديدة في الإكسل:** على جهازك `npm run db:import`، ثم صدّر dump جديدًا:
