@@ -5,18 +5,20 @@ import { Card } from '../../../components/ui/Card'
 import { SearchInput } from '../../../components/ui/SearchInput'
 import { SelectField } from '../../../components/ui/SelectField'
 import { NoMatchRow, TableToolbar, ToolbarItem } from '../../../components/ui/TableToolbar'
-import { formatNumber, formatUsd } from '../../../lib/format'
+import { formatNumber, formatPercent, formatUsd, share } from '../../../lib/format'
 import { matchesSearch } from '../../../lib/search'
 import type { OperationRow, OperationsReport as Report } from '../../../services/types'
 import { SERIES_COLOR, SERIES_COLOR_ALT } from '../../../lib/labels'
 
-type SortKey = 'ref' | 'minutes' | 'value_usd' | 'k16_area' | 'price' | 'purchase_year'
+type SortKey = 'ref' | 'minutes' | 'value_usd' | 'sankari_value_usd' | 'asali_value_usd' | 'k16_area' | 'price' | 'purchase_year'
 
 const COLUMNS: { key: SortKey | null; label: string }[] = [
   { key: 'ref', label: 'رقم الكشف 16' },
   { key: null, label: 'المناطق' },
   { key: 'minutes', label: 'عدد المحاضر' },
   { key: 'value_usd', label: 'القيمة $' },
+  { key: 'sankari_value_usd', label: 'حصة د. سنكري $' },
+  { key: 'asali_value_usd', label: 'حصة عسلي $' },
   { key: 'k16_area', label: 'المساحة (م²)' },
   { key: 'price', label: 'سعر المتر $' },
   { key: 'purchase_year', label: 'سنة أول عقد' },
@@ -87,11 +89,13 @@ export function OperationsReport({ report, charts = true }: { report: Report; ch
 
   return (
     <div className="grid grid-cols-1 gap-4">
-      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
         <Stat label="عمليات الشراء" value={formatNumber(summary.operations)} hint={`${formatNumber(summary.valued_operations)} منها مقيَّمة`} />
         <Stat label="المحاضر ضمنها" value={formatNumber(summary.minutes)} hint={summary.operations ? `بمتوسط ${formatNumber(Math.round((summary.minutes / summary.operations) * 10) / 10)} محضر للعملية` : undefined} />
         <Stat label="القيمة الإجمالية" value={formatUsd(summary.value_usd)} hint={`${formatNumber(summary.value_syp)} ل.س`} />
         <Stat label="المساحة بحسب الكشف 16 (م²)" value={formatNumber(summary.k16_area)} />
+        <Stat label="حصة د. سنكري" value={formatUsd(summary.sankari_value_usd)} hint={`${formatPercent(share(summary.sankari_value_usd, summary.value_usd))} من القيمة`} />
+        <Stat label="حصة عسلي" value={formatUsd(summary.asali_value_usd)} hint={`${formatPercent(share(summary.asali_value_usd, summary.value_usd))} من القيمة`} />
       </div>
 
       {charts && byYear.length > 0 && (
@@ -165,6 +169,8 @@ export function OperationsReport({ report, charts = true }: { report: Report; ch
                     )}
                   </td>
                   <td className="num px-3 py-2">{item.valued_minutes > 0 ? formatUsd(item.value_usd) : <span className="rounded bg-danger-soft px-1.5 py-0.5 text-xs font-bold text-danger">بلا قيمة</span>}</td>
+                  <td className="num px-3 py-2">{formatUsd(item.sankari_value_usd)}</td>
+                  <td className="num px-3 py-2">{formatUsd(item.asali_value_usd)}</td>
                   <td className="num px-3 py-2">{formatNumber(item.k16_area)}</td>
                   <td className="num px-3 py-2">{formatUsd(item.price)}</td>
                   <td className="num px-3 py-2 text-ink-soft">{item.purchase_year ?? '—'}</td>
@@ -177,6 +183,8 @@ export function OperationsReport({ report, charts = true }: { report: Report; ch
                   <td className="px-3 py-2.5" />
                   <td className="num px-3 py-2.5">{formatNumber(sumOf(items, (i) => i.minutes))}</td>
                   <td className="num px-3 py-2.5">{formatUsd(sumOf(items, (i) => i.value_usd))}</td>
+                  <td className="num px-3 py-2.5">{formatUsd(sumOf(items, (i) => i.sankari_value_usd))}</td>
+                  <td className="num px-3 py-2.5">{formatUsd(sumOf(items, (i) => i.asali_value_usd))}</td>
                   <td className="num px-3 py-2.5">{formatNumber(sumOf(items, (i) => i.k16_area))}</td>
                   <td className="px-3 py-2.5" />
                   <td className="px-3 py-2.5" />

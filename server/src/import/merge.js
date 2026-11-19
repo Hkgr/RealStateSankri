@@ -8,6 +8,8 @@
 // equals the sheet's. Anything else in the block is left out, written in the parcel's notes, and returned
 // so the totals can be proven.
 
+import { splitByShares } from './shareValues.js'
+
 const GROUP_LABELS = {
   sankari_100: 'د. سنكري 100%',
   joint_75_25: 'د. سنكري 75% + عسلي 25%',
@@ -87,6 +89,7 @@ export function mergeRepeatedMinutes(parcels) {
         sourceRow: parcel.sourceRowStart,
         sourceRowEnd: parcel.sourceRowEnd,
         ...Object.fromEntries(LINE_FIGURES.map((figure) => [figure, parcel[figure]])),
+        ...splitByShares(parcel),
       })
     }
     for (const figure of PROVEN_FIGURES) if (!asLine || !LINE_FIGURES.includes(figure)) excluded[figure] += parcel[figure] ?? 0

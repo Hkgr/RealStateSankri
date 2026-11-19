@@ -6,6 +6,7 @@
 // for some parcels, further purchase contracts. For the "problem lands" and the unclassified
 // parcels the rows list the registered owners instead.
 import { mergeRepeatedMinutes } from './merge.js'
+import { splitByShares } from './shareValues.js'
 import {
   categorize,
   clean,
@@ -222,6 +223,13 @@ export function buildModel(sheetRows) {
   }
 
   const merged = mergeRepeatedMinutes(parcels)
+  // Each owner's value by shares (see shareValues.js); the sheet's own columns stay where shares are missing.
+  for (const parcel of merged.parcels) {
+    const { fromShares, conflict, ...values } = splitByShares(parcel)
+    Object.assign(parcel, values)
+    parcel.valueByShares = fromShares
+    if (conflict) warnings.push(`صف ${parcel.sourceRowStart}: أسهم المحضر ${parcel.minuteNo} (${parcel.regionName}) لا تطابق الملكية المكتوبة؛ بقيت قيمة سنكري وعسلي من أعمدة الملف`)
+  }
   return { parcels: merged.parcels, excluded: merged.excluded, warnings }
 }
 

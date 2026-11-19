@@ -10,7 +10,8 @@ export async function loadOperations(rows, filters) {
   const clause = parcelClause(filters)
   const items = await rows(
     `SELECT p.kashf16_ref ref, COUNT(*) minutes, SUM(p.k16_value_usd IS NOT NULL) valued_minutes,
-            SUM(p.k16_value_usd) value_usd, SUM(p.k16_value_syp) value_syp, SUM(p.k16_area) k16_area,
+            SUM(p.k16_value_usd) value_usd, SUM(p.sankari_value_usd) sankari_value_usd, SUM(p.asali_value_usd) asali_value_usd,
+            SUM(p.k16_value_syp) value_syp, SUM(p.k16_area) k16_area,
             SUM(p.total_area) total_area, SUM(p.minute_area) owned_area, MIN(p.first_purchase_date) first_purchase_date,
             GROUP_CONCAT(DISTINCT r.name_ar ORDER BY r.name_ar SEPARATOR ' ، ') regions,
             GROUP_CONCAT(DISTINCT g.name_ar ORDER BY g.sort_order SEPARATOR ' ، ') owners
@@ -29,7 +30,7 @@ export async function loadOperations(rows, filters) {
   // Kashf 16 lines written under a minute that is listed twice: purchase operations of their own.
   const lines = await rows(
     `SELECT l.kashf16_ref ref, p.minute_no listed_under, p.first_purchase_date, r.name_ar regions, g.name_ar owners,
-            l.k16_value_usd value_usd, l.k16_value_syp value_syp, l.k16_area, l.total_area, (p.kashf16_ref IS NULL) own_minute
+            l.k16_value_usd value_usd, l.sankari_value_usd, l.asali_value_usd, l.k16_value_syp value_syp, l.k16_area, l.total_area, (p.kashf16_ref IS NULL) own_minute
      FROM operation_lines l JOIN parcels p ON p.id = l.parcel_id JOIN regions r ON r.id = p.region_id
           JOIN ownership_groups g ON g.code = l.ownership_group
      WHERE ${clause.sql}`,
@@ -67,6 +68,8 @@ export async function buildOperations(rows, filters) {
       valued_operations: items.filter((i) => i.valued_minutes > 0).length,
       minutes: sum((i) => i.minutes) + extraMinutes,
       value_usd: sum((i) => i.value_usd),
+      sankari_value_usd: sum((i) => i.sankari_value_usd),
+      asali_value_usd: sum((i) => i.asali_value_usd),
       value_syp: sum((i) => i.value_syp),
       k16_area: sum((i) => i.k16_area),
     },
@@ -101,7 +104,7 @@ export async function operationOf(rows, ref) {
 /** Kashf 16 lines written under a minute that is listed twice (each is a purchase operation of its own). */
 export async function linesOf(rows, parcelId) {
   const lines = await rows(
-    `SELECT l.kashf16_ref ref, g.name_ar owners, l.total_area, l.k16_area, l.k16_value_usd value_usd, l.k16_value_syp value_syp,
+    `SELECT l.kashf16_ref ref, g.name_ar owners, l.total_area, l.k16_area, l.k16_value_usd value_usd, l.sankari_value_usd, l.asali_value_usd, l.k16_value_syp value_syp,
             l.source_row, l.source_row_end
      FROM operation_lines l JOIN ownership_groups g ON g.code = l.ownership_group WHERE l.parcel_id = ? ORDER BY l.source_row`,
     [parcelId],

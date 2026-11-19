@@ -15,6 +15,7 @@ import type { Filters } from '../useDashboardFilters'
 interface Column {
   sort: string
   label: string
+  hint?: string
 }
 
 const COLUMNS: Column[] = [
@@ -24,6 +25,8 @@ const COLUMNS: Column[] = [
   { sort: 'total_area', label: 'المساحة الإجمالية (م²)' },
   { sort: 'owned_area', label: 'المملوكة (م²)' },
   { sort: 'value', label: 'قيمة العملية (كشف 16) $' },
+  { sort: 'sankari_value', label: 'حصة د. سنكري $', hint: 'قيمة الكشف 16 × أسهم سنكري ÷ أسهم العقار؛ تظهر في المحضر الذي كُتبت عليه قيمة العملية' },
+  { sort: 'asali_value', label: 'حصة عسلي $', hint: 'قيمة الكشف 16 × أسهم عسلي ÷ أسهم العقار؛ تظهر في المحضر الذي كُتبت عليه قيمة العملية' },
   { sort: 'annotations', label: 'الإشارات' },
   { sort: 'purchase', label: 'أول شراء' },
 ]
@@ -117,7 +120,7 @@ export function ParcelsPanel({ filters, purchaseYears, onReset }: { filters: Fil
                     const active = table.sort === column.sort
                     return (
                       <th key={column.sort} scope="col" aria-sort={active ? (table.dir === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-3 py-2.5 text-start font-bold">
-                        <button type="button" onClick={() => sortBy(column.sort)} className="inline-flex cursor-pointer items-center gap-1 whitespace-nowrap hover:text-ink">
+                        <button type="button" title={column.hint} onClick={() => sortBy(column.sort)} className="inline-flex cursor-pointer items-center gap-1 whitespace-nowrap hover:text-ink">
                           {column.label}
                           {active ? table.dir === 'asc' ? <ArrowUp className="size-3.5" aria-hidden="true" /> : <ArrowDown className="size-3.5" aria-hidden="true" /> : <ArrowUpDown className="size-3.5 opacity-40" aria-hidden="true" />}
                         </button>
@@ -151,6 +154,8 @@ export function ParcelsPanel({ filters, purchaseYears, onReset }: { filters: Fil
                         </span>
                       )}
                     </td>
+                    <td className="num px-3 py-2">{formatUsd(parcel.sankari_value_usd)}</td>
+                    <td className="num px-3 py-2">{formatUsd(parcel.asali_value_usd)}</td>
                     <td className="num px-3 py-2 font-bold">{formatNumber(parcel.annotation_count)}</td>
                     <td className="px-3 py-2 text-ink-soft">
                       <span className="num">{formatDate(parcel.first_purchase_date)}</span>
