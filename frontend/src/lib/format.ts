@@ -27,6 +27,13 @@ export function formatPercent(value: number | null | undefined): string {
   return value == null ? NO_DATA : `${percent.format(value)}%`
 }
 
+/** File sizes: 17.7 MB, 340 KB. */
+export function formatBytes(bytes: number): string {
+  if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(bytes >= 10 * 1024 ** 2 ? 0 : 1)} MB`
+  if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`
+  return `${bytes} B`
+}
+
 export function share(part: number | null | undefined, whole: number | null | undefined): number | null {
   return part == null || !whole ? null : (part / whole) * 100
 }

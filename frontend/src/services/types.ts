@@ -358,3 +358,29 @@ export interface OperationsReport {
   by_year: { year: number | null; operations: number; minutes: number; value_usd: number }[]
   items: OperationRow[]
 }
+
+export type DocumentCategory = 'annotations' | 'records' | 'surveys' | 'visits' | 'contracts' | 'other'
+
+export interface ParcelDocument {
+  /** Id of the link between this parcel and the file (a shared file has one per parcel). */
+  id: number
+  category: DocumentCategory
+  title: string
+  original_name: string
+  doc_date: string | null
+  annotation_ref: number | null
+  group_label: string | null
+  size_bytes: number
+  mime: string
+  kind: 'pdf' | 'image' | 'sheet' | 'other'
+  /** How many parcels this same file is filed under. */
+  shared_with: number
+}
+
+export interface ParcelDocuments {
+  /** False until the site is password protected (the server refuses to show documents otherwise). */
+  enabled: boolean
+  /** False when no documents have been indexed on this server yet. */
+  available: boolean
+  items: ParcelDocument[]
+}

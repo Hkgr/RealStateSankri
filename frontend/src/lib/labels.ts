@@ -59,6 +59,15 @@ export const CHANNEL_COLORS: Record<string, string> = {
   unknown: '#94a3b8',
 }
 
+export const DOCUMENT_CATEGORY_LABELS: Record<string, string> = {
+  contracts: 'عقود الشراء',
+  records: 'بيانات عقارية',
+  surveys: 'بيانات مساحية',
+  annotations: 'الإشارات',
+  visits: 'الزيارات الميدانية',
+  other: 'أخرى',
+}
+
 export const TIMING_LABELS: Record<string, string> = {
   before_purchase: 'قبل الشراء',
   before_transfer: 'قبل الفراغة',

@@ -1,3 +1,4 @@
+import { Paperclip } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { DonutChart, HBarChart, type ChartItem } from '../../components/charts/BasicCharts'
@@ -11,10 +12,12 @@ import { SiteHeader } from '../../layout/SiteHeader'
 import { matchesSearch } from '../../lib/search'
 import { formatDate, formatDecimal, formatNumber, formatPercent, formatUsd, share } from '../../lib/format'
 import { ACQUISITION_LABELS, CATEGORY_COLORS, CHANNEL_LABELS, LAND_STATUS_LABELS, SERIES_COLOR, TARGET_LABELS, TIMING_LABELS } from '../../lib/labels'
+import { documentUrl } from '../../services/api'
 import type { ParcelDetail } from '../../services/types'
 import { CategoryPill } from '../dashboard/components/AnnotationsTable'
 import { GroupPill } from '../dashboard/components/ParcelsPanel'
-import { useParcel } from '../dashboard/queries'
+import { useParcel, useParcelDocuments } from '../dashboard/queries'
+import { DocumentsCard } from './DocumentsCard'
 
 const TOTAL_SHARES = 2400
 // A parcel's annotation list shorter than this is read at a glance; a longer one gets filters.
@@ -96,6 +99,15 @@ export function ParcelPage() {
 
 function ParcelDashboard({ detail }: { detail: ParcelDetail }) {
   const { parcel: p, owners, purchases, annotations, region, operation, extra_operations: extraOperations } = detail
+  const documents = useParcelDocuments(String(p.id))
+  // An annotation whose scanned file is on the server links straight to it.
+  const annotationFiles = useMemo(() => {
+    const files = new Map<number, number>()
+    for (const doc of documents.data?.items ?? []) {
+      if (doc.category === 'annotations' && doc.annotation_ref != null && !files.has(doc.annotation_ref)) files.set(doc.annotation_ref, doc.id)
+    }
+    return files
+  }, [documents.data])
   const [category, setCategory] = useState('')
   const [search, setSearch] = useState('')
   const [timing, setTiming] = useState('')
@@ -319,6 +331,8 @@ function ParcelDashboard({ detail }: { detail: ParcelDetail }) {
         </Card>
       )}
 
+      <DocumentsCard documents={documents.data} loading={documents.isPending} error={documents.error} onRetry={() => void documents.refetch()} />
+
       <Card title="الخط الزمني للعقار" hint="الشراء والحكم والفراغة والإشارات؛ الدائرة الفارغة تعني أن السنة فقط معروفة">
         {events.length ? <TimelineChart events={events} lanes={lanes} ariaLabel="الخط الزمني لأحداث العقار" className="h-80" /> : <p className="py-16 text-center text-sm text-ink-muted">لا توجد تواريخ مسجّلة لهذا العقار.</p>}
       </Card>
@@ -397,7 +411,21 @@ function ParcelDashboard({ detail }: { detail: ParcelDetail }) {
                     <td className="px-3 py-2 text-ink-soft">
                       <span className="num">{a.ref_date ? formatDate(a.ref_date) : (a.ref_year ?? dash)}</span>
                     </td>
-                    <td className="num px-3 py-2">{a.ref_no ?? dash}</td>
+                    <td className="num px-3 py-2">
+                      {a.ref_no ?? dash}
+                      {a.ref_no != null && annotationFiles.has(a.ref_no) && (
+                        <a
+                          href={documentUrl(annotationFiles.get(a.ref_no)!)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="no-print ms-1.5 inline-flex align-middle text-brand-ink hover:text-brand"
+                          title="عرض ملف الإشارة"
+                          aria-label={`عرض ملف الإشارة ${a.ref_no}`}
+                        >
+                          <Paperclip className="size-4" aria-hidden="true" />
+                        </a>
+                      )}
+                    </td>
                     <td className="px-3 py-2 font-semibold text-ink">{a.placed_by ?? dash}</td>
                     <td className="px-3 py-2">
                       <CategoryPill code={a.category} name={a.category_name} />

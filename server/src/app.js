@@ -3,6 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import express from 'express'
 import { buildAnalytics } from './analytics.js'
+import { basicAuth, registerDocumentRoutes } from './documents.js'
 import { annotationClause, parcelClause, readFilters } from './filters.js'
 import { buildOperations, linesOf, operationOf } from './operations.js'
 import { buildQuality, missingRecords } from './quality.js'
@@ -39,6 +40,8 @@ const toInt = (value, fallback, min, max) => {
 export function createApp(pool) {
   const app = express()
   app.disable('x-powered-by')
+  // Optional password for the whole site (see documents.js): the documents are only served when it is set.
+  if (process.env.BASIC_AUTH_USER && process.env.BASIC_AUTH_PASSWORD) app.use(basicAuth(process.env.BASIC_AUTH_USER, process.env.BASIC_AUTH_PASSWORD))
   const router = express.Router()
   const rows = async (sql, params = []) => (await pool.query(sql, params))[0]
   const one = async (sql, params = []) => (await rows(sql, params))[0]
@@ -335,6 +338,8 @@ export function createApp(pool) {
     ])
     res.json({ data: { total: total.n, page, per, items } })
   })
+
+  registerDocumentRoutes(router, rows)
 
   app.use('/api/v1', router)
   app.use('/api', (_req, res) => res.status(404).json({ message: 'المسار غير موجود.' }))

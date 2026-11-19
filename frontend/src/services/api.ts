@@ -10,6 +10,9 @@ export class ApiError extends Error {
   }
 }
 
+/** Address of a stored document (shown in the browser, or downloaded with `download`). */
+export const documentUrl = (id: number, download = false) => `${BASE_URL}/documents/${id}/file${download ? '?download=1' : ''}`
+
 export type Params = Record<string, string | number | null | undefined>
 
 export async function apiGet<T>(path: string, params: Params = {}, signal?: AbortSignal): Promise<T> {
