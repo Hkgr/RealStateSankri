@@ -331,6 +331,8 @@ export interface OperationRow {
   minutes: number
   valued_minutes: number
   value_usd: number | null
+  sankari_value_usd: number | null
+  asali_value_usd: number | null
   value_syp: number | null
   k16_area: number | null
   total_area: number | null
@@ -350,6 +352,8 @@ export interface OperationsReport {
     valued_operations: number
     minutes: number
     value_usd: number
+    sankari_value_usd: number
+    asali_value_usd: number
     value_syp: number
     k16_area: number
   }

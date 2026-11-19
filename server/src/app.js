@@ -19,6 +19,8 @@ const PARCEL_SORTS = {
   owned_area: 'p.minute_area',
   total_area: 'p.total_area',
   value: 'operation_value',
+  sankari_value: 'p.sankari_value_usd',
+  asali_value: 'p.asali_value_usd',
   annotations: 'annotation_count',
   purchase: 'p.first_purchase_date',
 }

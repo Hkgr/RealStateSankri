@@ -8,6 +8,8 @@ import { dbConfig } from '../db.js'
 import { buildModel, sheetTotals } from './build.js'
 
 const dryRun = process.argv.includes('--dry-run')
+const OWNER_VALUES = ['sankariValueUsd', 'asaliValueUsd']
+const OWNER_VALUE_TOLERANCE = 25 // dollars across the whole file
 const here = path.dirname(fileURLToPath(import.meta.url))
 const source = path.resolve(here, '../..', process.env.SOURCE_XLSX ?? '../تجميع اراضي.xlsx')
 
@@ -99,10 +101,16 @@ try {
   const left = (key) => excluded[key] ?? 0
   for (const key of Object.keys(totals)) {
     const expected = totals[key] - left(key)
-    const same = Math.abs(Number(db[key]) - expected) < 0.01
+    // Each owner's value is computed from the shares, so it may differ a little from the sheet's rounded 75/25 columns.
+    const tolerance = OWNER_VALUES.includes(key) ? OWNER_VALUE_TOLERANCE : 0.01
+    const gap = Number(db[key]) - expected
+    const same = Math.abs(gap) < tolerance
     ok &&= same
-    console.log(`${same ? '✓' : '✗'} ${key}: الملف ${totals[key]}${left(key) ? ` − مستبعد ${left(key)}` : ''} · القاعدة ${Number(db[key])}`)
+    const note = OWNER_VALUES.includes(key) ? ` · فرق ${gap.toFixed(2)} (الحساب بالأسهم)` : ''
+    console.log(`${same ? '✓' : '✗'} ${key}: الملف ${totals[key]}${left(key) ? ` − مستبعد ${left(key)}` : ''} · القاعدة ${Number(db[key])}${note}`)
   }
+  const sum = (key) => parcels.reduce((total, parcel) => total + (parcel[key] ?? 0), 0)
+  console.log(`قيمة المالكين بالأسهم لـ ${parcels.filter((p) => p.valueByShares).length} عقارًا، والباقي من أعمدة الملف. سنكري + عسلي = ${(sum('sankariValueUsd') + sum('asaliValueUsd')).toFixed(2)}`)
   if (!ok) throw new Error('إجماليات القاعدة لا تطابق الملف')
   console.log(`تم الاستيراد إلى ${database}`)
 } catch (error) {
