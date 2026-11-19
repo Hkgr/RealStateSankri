@@ -8,6 +8,8 @@ import { SearchInput } from '../../components/ui/SearchInput'
 import { SelectField } from '../../components/ui/SelectField'
 import { ErrorState } from '../../components/ui/StateViews'
 import { NoMatchRow, TableToolbar, ToolbarItem } from '../../components/ui/TableToolbar'
+import { Breadcrumbs } from '../../layout/NavTrail'
+import { useTrailLabel } from '../../layout/trailContext'
 import { SiteHeader } from '../../layout/SiteHeader'
 import { matchesSearch } from '../../lib/search'
 import { formatDate, formatDecimal, formatNumber, formatPercent, formatUsd, share } from '../../lib/format'
@@ -79,8 +81,9 @@ export function ParcelPage() {
 
   return (
     <div className="min-h-screen">
-      <SiteHeader back />
+      <SiteHeader />
       <main className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-4 py-5 sm:px-6">
+        <Breadcrumbs />
         {query.isError ? (
           <ErrorState message={query.error.message} onRetry={() => void query.refetch()} />
         ) : !query.data ? (
@@ -99,6 +102,7 @@ export function ParcelPage() {
 
 function ParcelDashboard({ detail }: { detail: ParcelDetail }) {
   const { parcel: p, owners, purchases, annotations, region, operation, extra_operations: extraOperations } = detail
+  useTrailLabel(`محضر ${p.minute_no} · ${p.region}`)
   const documents = useParcelDocuments(String(p.id))
   // An annotation whose scanned file is on the server links straight to it.
   const annotationFiles = useMemo(() => {

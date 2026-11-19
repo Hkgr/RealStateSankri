@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { DashboardPage } from './features/dashboard/DashboardPage'
 import { ParcelPage } from './features/parcel/ParcelPage'
+import { NavTrailProvider } from './layout/NavTrail'
 import { ApiError } from './services/api'
 
 const queryClient = new QueryClient({
@@ -19,11 +20,13 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/parcels/:id" element={<ParcelPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <NavTrailProvider>
+          <Routes>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/parcels/:id" element={<ParcelPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </NavTrailProvider>
       </BrowserRouter>
     </QueryClientProvider>
   )

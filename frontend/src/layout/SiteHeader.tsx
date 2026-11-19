@@ -1,11 +1,9 @@
-import { ArrowRight } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import logoColor from '../assets/brand/sankari-logo.svg'
 import logoReversed from '../assets/brand/sankari-logo-reversed.svg'
 
-/** App bar: the logo, the title, and either the import time of the data or a way back to the dashboard. */
-export function SiteHeader({ importedAt, back }: { importedAt?: string | null; back?: boolean }) {
-  const navigate = useNavigate()
+/** App bar: the logo, the title and the import time of the data. The way back is the breadcrumb bar (NavTrail). */
+export function SiteHeader({ importedAt }: { importedAt?: string | null }) {
   return (
     <header className="site-header">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-4 sm:px-6 sm:py-5">
@@ -19,21 +17,10 @@ export function SiteHeader({ importedAt, back }: { importedAt?: string | null; b
             <span className="mt-0.5 block text-xs font-semibold text-white/65 sm:text-sm print:text-ink-muted">المحاضر · الإشارات · عقود الشراء · قيم الكشف 16</span>
           </span>
         </Link>
-        {back ? (
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="no-print inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3.5 text-sm font-semibold text-white transition-colors hover:border-brand-bright hover:bg-white/15"
-          >
-            <ArrowRight className="size-4" aria-hidden="true" />
-            رجوع
-          </button>
-        ) : (
-          importedAt && (
-            <span className="no-print rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs text-white/70">
-              آخر استيراد للبيانات: <span className="num font-semibold text-white">{importedAt.slice(0, 16).replace('T', ' ')}</span>
-            </span>
-          )
+        {importedAt && (
+          <span className="no-print rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs text-white/70">
+            آخر استيراد للبيانات: <span className="num font-semibold text-white">{importedAt.slice(0, 16).replace('T', ' ')}</span>
+          </span>
         )}
       </div>
     </header>
